@@ -12,6 +12,10 @@ const AppHeader: React.FC = () => {
   };
 
   const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
     logout();
   };
 
@@ -41,8 +45,7 @@ const AppHeader: React.FC = () => {
           </IconButton>
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
             <MenuItem onClick={handleMenuClose}>Mudar usuário</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Bloquear sessão</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Sair da sessão</MenuItem>
+            <MenuItem onClick={handleLogout}>Sair da sessão</MenuItem>
           </Menu>
         </Box>
       </Toolbar>

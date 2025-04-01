@@ -29,6 +29,7 @@ const NotFound = () => {
         A página que você está procurando não existe ou foi removida.
       </Typography>
 
+      {/* Botão para retornar à página inicial 
       <Button 
         variant="contained" 
         onClick={() => navigate("/")}
@@ -40,6 +41,7 @@ const NotFound = () => {
       >
         Voltar para página inicial
       </Button>
+      */}
     </Box>
   );
 };

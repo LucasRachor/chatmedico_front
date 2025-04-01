@@ -41,7 +41,7 @@ const Login: React.FC = () => {
       localStorage.setItem("role", decodedToken.role);
 
       if (decodedToken.role === "medico") {
-        navigate("/patients");
+        navigate("/patient");
       } else if (decodedToken.role === "paciente") {
         navigate("/patientHome");
       } else {

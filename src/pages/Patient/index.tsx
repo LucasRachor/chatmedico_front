@@ -52,21 +52,33 @@ const PatientListScreen: React.FC = () => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const medicoId = payload.sub;
 
+    // Cria a sala do chat
+    const chatRoom = `chat-${patientId}-${medicoId}`;
+
+    // Emite o evento de aceitar paciente
     socket.emit("acceptPatient", {
-      data: {
-        pacienteId: patientId,
-        medicoId: medicoId
-      }
+      pacienteId: patientId,
+      medicoId: medicoId,
+      sala: chatRoom
     });
 
     // Remove o paciente da fila
     setQueuePatients(prev => prev.filter(p => p.pacienteId !== patientId));
+
+    // Redireciona para o chat com os parâmetros necessários
+    navigate("/medicalChat", {
+      state: {
+        sala: chatRoom,
+        remetenteId: medicoId,
+        mensagemInicial: "Olá! Como posso ajudar você hoje?"
+      }
+    });
   };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "90vh", p: 2, mt: 10 }}>
       <AppHeader />
-      <Button color="primary" variant="contained" onClick={() => navigate("/manageQuestions")} sx={{width: 200, mb: 3, ml: 1}}>
+      <Button color="primary" variant="contained" onClick={() => navigate("/manageQuestions")} sx={{ width: 200, mb: 3, ml: 1 }}>
         Criar Formulário
       </Button>
 
@@ -91,9 +103,9 @@ const PatientListScreen: React.FC = () => {
                 <TableRow key={patient.pacienteId}>
                   <TableCell>{patient.name || "Paciente sem nome"}</TableCell>
                   <TableCell>
-                    <Button 
-                      variant="contained" 
-                      color="primary" 
+                    <Button
+                      variant="contained"
+                      color="primary"
                       size="small"
                       onClick={() => handleAcceptPatient(patient.pacienteId)}
                     >

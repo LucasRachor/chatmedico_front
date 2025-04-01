@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography, CircularProgress, Button, TextField, Paper, List, ListItem, ListItemText } from "@mui/material";
 import { io } from "socket.io-client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
 
 const socket = io("http://localhost:4000");
+
+interface LocationState {
+  sala?: string;
+  remetenteId?: string;
+  mensagemInicial?: string;
+}
 
 const MedicalChat: React.FC = () => {
   const [isWaiting, setIsWaiting] = useState(true);
@@ -13,7 +19,19 @@ const MedicalChat: React.FC = () => {
   const [chatStarted, setChatStarted] = useState(false);
   const [sala, setSala] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { token } = getAuthData();
+  const state = location.state as LocationState;
+  const initialMessageSent = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (!token) {
@@ -21,35 +39,67 @@ const MedicalChat: React.FC = () => {
       return;
     }
 
-    // Decodifica o token para obter o ID do paciente
     const payload = JSON.parse(atob(token.split('.')[1]));
-    const patientId = payload.sub;
-    const patientName = payload.username;
+    const userId = payload.sub;
+    const userName = payload.username;
+    const userRole = payload.role;
 
-    // Entra na fila
-    socket.emit("enterQueue", {
-      pacienteId: patientId,
-      name: patientName
-    });
-
-    // Escuta quando o médico aceita o paciente
-    socket.on("acceptPatient", (data) => {
-      const chatRoom = `chat-${patientId}-${data.medicoId}`;
-      setSala(chatRoom);
+    // Se vier do componente Patient (médico), já inicia o chat
+    if (state?.sala && state?.remetenteId) {
+      setSala(state.sala);
       setChatStarted(true);
       setIsWaiting(false);
-    });
+      
+      // Entra na sala do chat
+      socket.emit("joinRoom", { sala: state.sala });
+      
+      // Envia mensagem inicial apenas uma vez
+      if (state.mensagemInicial && !initialMessageSent.current) {
+        const messagePayload = {
+          sala: state.sala,
+          remetenteId: state.remetenteId,
+          mensagem: state.mensagemInicial,
+          role: userRole
+        };
+        socket.emit("sendMessage", messagePayload);
+        initialMessageSent.current = true;
+      }
+    } else {
+      // Se for paciente, entra na fila
+      socket.emit("enterQueue", {
+        pacienteId: userId,
+        name: userName
+      });
+
+      socket.on("acceptPatient", (data) => {
+        const chatRoom = `chat-${userId}-${data.medicoId}`;
+        setSala(chatRoom);
+        setChatStarted(true);
+        setIsWaiting(false);
+        
+        // Entra na sala do chat
+        socket.emit("joinRoom", { sala: chatRoom });
+      });
+    }
 
     // Escuta mensagens do chat
     socket.on("message", (data) => {
-      setMessages((prev) => [...prev, data]);
+      console.log("Mensagem recebida:", data);
+      // Não adiciona a mensagem se for a mensagem inicial e já tiver sido enviada
+      if (!(data.mensagem === state?.mensagemInicial && initialMessageSent.current)) {
+        setMessages((prev) => [...prev, { sender: data.remetenteId, text: data.mensagem }]);
+      }
     });
 
     return () => {
+      if (sala) {
+        socket.emit("endChat", { sala });
+      }
       socket.off("acceptPatient");
       socket.off("message");
+      socket.off("endChat");
     };
-  }, [token, navigate]);
+  }, [token, navigate, state]);
 
   const sendMessage = () => {
     if (!token || !sala) return;
@@ -57,11 +107,13 @@ const MedicalChat: React.FC = () => {
     if (message.trim() !== "") {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const remetenteId = payload.sub;
+      const userRole = payload.role;
 
       const messagePayload = {
         sala: sala,
         remetenteId: remetenteId,
-        mensagem: message
+        mensagem: message,
+        role: userRole
       };
 
       socket.emit("sendMessage", messagePayload);
@@ -78,7 +130,13 @@ const MedicalChat: React.FC = () => {
   const getSenderName = (senderId: string) => {
     if (!token) return "Desconhecido";
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return senderId === payload.sub ? "Você" : "Médico";
+    return senderId === payload.sub ? "Você" : (payload.role === "medico" ? "Paciente" : "Médico");
+  };
+
+  const isCurrentUser = (senderId: string) => {
+    if (!token) return false;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return senderId === payload.sub;
   };
 
   return (
@@ -93,17 +151,35 @@ const MedicalChat: React.FC = () => {
         </Box>
       ) : (
         <Box>
-          <Typography variant="h5">Chat com o Médico</Typography>
+          <Typography variant="h5">Chat com o {state?.remetenteId ? "Paciente" : "Médico"}</Typography>
           <Paper sx={{ height: 300, overflowY: "auto", mt: 2, p: 2 }}>
             <List>
               {messages.map((msg, index) => (
-                <ListItem key={index}>
-                  <ListItemText
-                    primary={msg.text}
-                    secondary={getSenderName(msg.sender)}
-                  />
+                <ListItem 
+                  key={index}
+                  sx={{
+                    justifyContent: isCurrentUser(msg.sender) ? 'flex-end' : 'flex-start',
+                    padding: '8px 16px'
+                  }}
+                >
+                  <Box
+                    sx={{
+                      maxWidth: '70%',
+                      backgroundColor: isCurrentUser(msg.sender) ? 'primary.main' : 'grey.200',
+                      color: isCurrentUser(msg.sender) ? 'white' : 'text.primary',
+                      borderRadius: 2,
+                      padding: 1,
+                      textAlign: isCurrentUser(msg.sender) ? 'right' : 'left'
+                    }}
+                  >
+                    <Typography variant="body1">{msg.text}</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                      {getSenderName(msg.sender)}
+                    </Typography>
+                  </Box>
                 </ListItem>
               ))}
+              <div ref={messagesEndRef} />
             </List>
           </Paper>
           <Box sx={{ display: "flex", mt: 2 }}>

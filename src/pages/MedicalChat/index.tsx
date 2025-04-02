@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, CircularProgress, Button, TextField, Paper, List, ListItem, ListItemText } from "@mui/material";
+import { Box, Typography, CircularProgress, Button, TextField, Paper, List, ListItem, } from "@mui/material";
 import { io } from "socket.io-client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
@@ -12,18 +12,49 @@ interface LocationState {
   mensagemInicial?: string;
 }
 
+interface PacienteData {
+  nome_completo: string;
+  idade: number;
+  genero: string;
+}
+
 const MedicalChat: React.FC = () => {
   const [isWaiting, setIsWaiting] = useState(true);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [message, setMessage] = useState("");
   const [chatStarted, setChatStarted] = useState(false);
   const [sala, setSala] = useState<string | null>(null);
+  const [pacientAge, setPacientAge] = useState<number | null>(null);
+  const [pacientGender, setPacientGender] = useState<string | null>(null);
+  const [pacientName, setPacientName] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = getAuthData();
   const state = location.state as LocationState;
   const initialMessageSent = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchPacienteData = async (pacienteId: string) => {
+    try {
+      const response = await fetch(`http://localhost:4000/api/v1/pacientes/${pacienteId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados do paciente');
+      }
+
+      const data: PacienteData = await response.json();
+      console.log(data)
+      setPacientAge(data.idade);
+      setPacientGender(data.genero);
+      setPacientName(data.nome_completo);
+    } catch (error) {
+      console.error('Erro ao buscar dados do paciente:', error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,22 +96,20 @@ const MedicalChat: React.FC = () => {
         initialMessageSent.current = true;
       }
     } else {
-      // Se for paciente, entra na fila
-      socket.emit("enterQueue", {
-        pacienteId: userId,
-        name: userName
-      });
-
-      socket.on("acceptPatient", (data) => {
-        const chatRoom = `chat-${userId}-${data.medicoId}`;
-        setSala(chatRoom);
-        setChatStarted(true);
-        setIsWaiting(false);
-        
-        // Entra na sala do chat
-        socket.emit("joinRoom", { sala: chatRoom });
-      });
+      // Se for paciente, busca os dados e entra na fila
+      fetchPacienteData(userId);
     }
+
+    // Escuta quando um paciente é aceito
+    socket.on("acceptPatient", (data) => {
+      const chatRoom = `chat-${userId}-${data.medicoId}`;
+      setSala(chatRoom);
+      setChatStarted(true);
+      setIsWaiting(false);
+      
+      // Entra na sala do chat
+      socket.emit("joinRoom", { sala: chatRoom });
+    });
 
     // Escuta mensagens do chat
     socket.on("message", (data) => {
@@ -100,6 +129,22 @@ const MedicalChat: React.FC = () => {
       socket.off("endChat");
     };
   }, [token, navigate, state]);
+
+  // Novo useEffect para atualizar a fila quando os dados do paciente forem recebidos
+  useEffect(() => {
+    if (!token || !pacientAge || !pacientGender) return;
+
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
+    socket.emit("enterQueue", {
+      pacienteId: userId,
+      nome_completo: pacientName,
+      horaChegada: new Date().toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      idade: pacientAge,
+      genero: pacientGender
+    });
+  }, [token, pacientAge, pacientGender]);
 
   const sendMessage = () => {
     if (!token || !sala) return;

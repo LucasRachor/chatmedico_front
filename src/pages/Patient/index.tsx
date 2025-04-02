@@ -9,7 +9,10 @@ const socket = io("http://localhost:4000");
 
 interface QueuePatient {
   pacienteId: string;
-  name: string;
+  nome_completo: string;
+  horaChegada: string;
+  idade: string;
+  genero: string;
 }
 
 interface QueueData {
@@ -95,13 +98,19 @@ const PatientListScreen: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Nome</TableCell>
+                <TableCell>Chegada</TableCell>
+                <TableCell>Idade</TableCell>
+                <TableCell>Gênero</TableCell>
                 <TableCell>Ação</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {queuePatients.map((patient) => (
                 <TableRow key={patient.pacienteId}>
-                  <TableCell>{patient.name || "Paciente sem nome"}</TableCell>
+                  <TableCell>{patient.nome_completo || "Paciente sem nome"}</TableCell>
+                  <TableCell>{patient.horaChegada || "Paciente sem chegada"}</TableCell>
+                  <TableCell>{patient.idade}</TableCell>
+                  <TableCell>{patient.genero}</TableCell>
                   <TableCell>
                     <Button
                       variant="contained"

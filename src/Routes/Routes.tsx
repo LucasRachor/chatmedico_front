@@ -7,12 +7,18 @@ import PatientHome from "../pages/PatientHome";
 import MedicalChat from "../pages/MedicalChat";
 import ProtectedRoute from "../Components/ProtectedRoute/ProtectedRoute";
 import NotFound from "../pages/NotFound";
+import Register from "../pages/Register/Register";
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
         
         {/* Rotas protegidas para médicos */}
         <Route

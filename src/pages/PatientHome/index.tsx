@@ -34,9 +34,9 @@ const PatientHome: React.FC = () => {
             startIcon={<ChatBubbleOutline />}
             fullWidth
             sx={{ p: 2, fontSize: "1.1rem" }}
-            onClick={() => navigate("/medicalChat")}
+            //onClick={() => navigate("/medicalChat")}
           >
-            Acessar Chat Médico
+            Histórico de Atendimentos
           </Button>
 
           <Button
@@ -47,7 +47,7 @@ const PatientHome: React.FC = () => {
             sx={{ p: 2, fontSize: "1.1rem" }}
             onClick={() => navigate("/healthRiskForm")}
           >
-            Preencher Formulário de Triagem
+            Iniciar Atendimento
           </Button>
         </Paper>
       </Box>

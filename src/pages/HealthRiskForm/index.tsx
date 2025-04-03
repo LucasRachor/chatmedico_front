@@ -87,6 +87,16 @@ const HealthRiskForm: React.FC = () => {
         pesoTotal
       };
 
+      if (pesoTotal < 50 ) {
+        console.log('pesototal é menor que 50')
+        navigate('/antendimento-ia')
+      }
+
+      if (pesoTotal > 50) {
+        console.log('pesototal é maior que 50')
+        navigate('/medicalChat')
+      }
+
       console.log(payload);
 
       //const response = await fetch('http://localhost:4000/api/v1/questionario/respostas', {
@@ -102,7 +112,6 @@ const HealthRiskForm: React.FC = () => {
       //  throw new Error('Erro ao enviar respostas');
       //}
 
-      alert('Isso vai funcionar depois! hehe');
     } catch (error) {
       alert('Erro ao enviar formulário. Tente novamente.');
     }

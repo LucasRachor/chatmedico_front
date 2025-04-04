@@ -13,6 +13,7 @@ interface QueuePatient {
   horaChegada: string;
   idade: string;
   genero: string;
+  pesoTotal: string
 }
 
 interface QueueData {
@@ -29,6 +30,12 @@ const PatientListScreen: React.FC = () => {
   useEffect(() => {
     if (!token) return;
 
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const doctorId = payload.sub;
+
+    // Notifica o servidor que um médico conectou
+    socket.emit("doctorConnected", { doctorId });
+
     // Solicita a fila atual
     socket.emit("getQueue");
 
@@ -38,14 +45,15 @@ const PatientListScreen: React.FC = () => {
       setLastUpdate(new Date(data.timestamp).toLocaleString('pt-BR'));
     });
 
-    // Escuta quando um paciente é removido da fila
-    socket.on("patientRemovedFromQueue", (patientId: string) => {
-      setQueuePatients(prev => prev.filter(p => p.pacienteId !== patientId));
+    // Escuta atualizações gerais da fila (quando pacientes entram ou saem)
+    socket.on("updateQueue", (queue: QueuePatient[]) => {
+      setQueuePatients(queue);
+      setLastUpdate(new Date().toLocaleString('pt-BR'));
     });
 
     return () => {
       socket.off("queueList");
-      socket.off("patientRemovedFromQueue");
+      socket.off("updateQueue");
     };
   }, [token]);
 
@@ -101,6 +109,7 @@ const PatientListScreen: React.FC = () => {
                 <TableCell>Chegada</TableCell>
                 <TableCell>Idade</TableCell>
                 <TableCell>Gênero</TableCell>
+                <TableCell>Risco</TableCell>
                 <TableCell>Ação</TableCell>
               </TableRow>
             </TableHead>
@@ -111,6 +120,7 @@ const PatientListScreen: React.FC = () => {
                   <TableCell>{patient.horaChegada || "Paciente sem chegada"}</TableCell>
                   <TableCell>{patient.idade}</TableCell>
                   <TableCell>{patient.genero}</TableCell>
+                  <TableCell>{patient.pesoTotal}</TableCell>
                   <TableCell>
                     <Button
                       variant="contained"

@@ -74,7 +74,6 @@ const HealthRiskForm: React.FC = () => {
     if (!token) return;
 
     try {
-      // calcula o peso total das respostas
       const pesoTotal = Object.values(data).reduce((total, peso) => {
         return total + parseInt(peso || '0');
       }, 0);
@@ -94,7 +93,7 @@ const HealthRiskForm: React.FC = () => {
 
       if (pesoTotal > 50) {
         console.log('pesototal é maior que 50')
-        navigate('/medicalChat')
+        navigate('/medicalChat', { state: { pesoTotal } })
       }
 
       console.log(payload);

@@ -10,6 +10,7 @@ interface LocationState {
   sala?: string;
   remetenteId?: string;
   mensagemInicial?: string;
+  pesoTotal?: number;
 }
 
 interface PacienteData {
@@ -72,7 +73,6 @@ const MedicalChat: React.FC = () => {
 
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = payload.sub;
-    const userName = payload.username;
     const userRole = payload.role;
 
     // Se vier do componente Patient (médico), já inicia o chat
@@ -80,10 +80,10 @@ const MedicalChat: React.FC = () => {
       setSala(state.sala);
       setChatStarted(true);
       setIsWaiting(false);
-      
+
       // Entra na sala do chat
       socket.emit("joinRoom", { sala: state.sala });
-      
+
       // Envia mensagem inicial apenas uma vez
       if (state.mensagemInicial && !initialMessageSent.current) {
         const messagePayload = {
@@ -106,7 +106,7 @@ const MedicalChat: React.FC = () => {
       setSala(chatRoom);
       setChatStarted(true);
       setIsWaiting(false);
-      
+
       // Entra na sala do chat
       socket.emit("joinRoom", { sala: chatRoom });
     });
@@ -120,15 +120,36 @@ const MedicalChat: React.FC = () => {
       }
     });
 
+    // Escuta quando o chat é encerrado
+    socket.on("chatEnded", (data) => {
+      // Remove o paciente da fila
+      const pacienteId = userRole === "paciente" ? userId : data.pacienteId;
+      if (pacienteId) {
+        socket.emit("leaveQueue", { pacienteId });
+      }
+
+      if (userRole === "medico") {
+        navigate("/patient");
+      } else {
+        navigate("/patientHome");
+      }
+    });
+
     return () => {
       if (sala) {
+        // Remove o paciente da fila ao desmontar o componente
+        const pacienteId = userRole === "paciente" ? userId : state?.remetenteId;
+        if (pacienteId) {
+          socket.emit("leaveQueue", { pacienteId });
+        }
         socket.emit("endChat", { sala });
       }
       socket.off("acceptPatient");
       socket.off("message");
       socket.off("endChat");
+      socket.off("chatEnded");
     };
-  }, [token, navigate, state]);
+  }, [token, navigate, state, sala]);
 
   // Novo useEffect para atualizar a fila quando os dados do paciente forem recebidos
   useEffect(() => {
@@ -137,14 +158,39 @@ const MedicalChat: React.FC = () => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = payload.sub;
 
+    // Emite o evento de entrar na fila
     socket.emit("enterQueue", {
       pacienteId: userId,
       nome_completo: pacientName,
-      horaChegada: new Date().toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       idade: pacientAge,
-      genero: pacientGender
+      genero: pacientGender,
+      pesoTotal: state?.pesoTotal || 0,
+      horaChegada: new Date().toLocaleString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })
     });
-  }, [token, pacientAge, pacientGender]);
+
+    // Escuta quando o paciente é aceito
+    socket.on("acceptPatient", (data) => {
+      const chatRoom = `chat-${userId}-${data.medicoId}`;
+      setSala(chatRoom);
+      setChatStarted(true);
+      setIsWaiting(false);
+
+      // Entra na sala do chat
+      socket.emit("joinRoom", { sala: chatRoom });
+    });
+
+    return () => {
+      // Remove o paciente da fila quando o componente é desmontado
+      if (!chatStarted) {
+        socket.emit("leaveQueue", { pacienteId: userId });
+      }
+      socket.off("acceptPatient");
+    };
+  }, [token, pacientAge, pacientGender, pacientName, state?.pesoTotal, chatStarted]);
 
   const sendMessage = () => {
     if (!token || !sala) return;
@@ -184,6 +230,34 @@ const MedicalChat: React.FC = () => {
     return senderId === payload.sub;
   };
 
+  const handleEndChat = () => {
+    if (!token || !sala) return;
+
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+    const userRole = payload.role;
+
+    // Emite o evento de encerrar chat
+    socket.emit("endChat", {
+      sala: sala,
+      pacienteId: userRole === "paciente" ? userId : state?.remetenteId,
+      medicoId: userRole === "medico" ? userId : state?.remetenteId
+    });
+
+    // Remove o paciente da fila
+    const pacienteId = userRole === "paciente" ? userId : state?.remetenteId;
+    if (pacienteId) {
+      socket.emit("leaveQueue", { pacienteId });
+    }
+
+    // Redireciona baseado no papel do usuário
+    if (userRole === "medico") {
+      navigate("/patient");
+    } else {
+      navigate("/patientHome");
+    }
+  };
+
   return (
     <Box sx={{ maxWidth: "600px", margin: "auto", mt: 5, textAlign: "center" }}>
       {isWaiting ? (
@@ -196,11 +270,21 @@ const MedicalChat: React.FC = () => {
         </Box>
       ) : (
         <Box>
-          <Typography variant="h5">Chat com o {state?.remetenteId ? "Paciente" : "Médico"}</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5">Chat com o {state?.remetenteId ? "Paciente" : "Médico"}</Typography>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleEndChat}
+              sx={{ ml: 2 }}
+            >
+              Encerrar Chat
+            </Button>
+          </Box>
           <Paper sx={{ height: 300, overflowY: "auto", mt: 2, p: 2 }}>
             <List>
               {messages.map((msg, index) => (
-                <ListItem 
+                <ListItem
                   key={index}
                   sx={{
                     justifyContent: isCurrentUser(msg.sender) ? 'flex-end' : 'flex-start',

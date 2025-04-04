@@ -21,7 +21,6 @@ interface FormData {
   genero: string;
   grau_de_instrucao: string;
   data_nascimento: string;
-  idade: string;
   endereco: {
     rua: string;
     numero: string;
@@ -48,7 +47,6 @@ const Register: React.FC = () => {
     genero: "",
     grau_de_instrucao: "",
     data_nascimento: "",
-    idade: "",
     endereco: {
       rua: "",
       numero: "",
@@ -92,7 +90,6 @@ const Register: React.FC = () => {
       formData.genero,
       formData.grau_de_instrucao,
       formData.data_nascimento,
-      formData.idade,
       formData.endereco.rua,
       formData.endereco.numero,
       formData.endereco.bairro,
@@ -113,8 +110,20 @@ const Register: React.FC = () => {
       return;
     }
 
+    // Calcular idade a partir da data de nascimento
+    const dataNascimento = new Date(formData.data_nascimento);
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - dataNascimento.getFullYear();
+    const mesAtual = hoje.getMonth();
+    const mesNascimento = dataNascimento.getMonth();
+    
+    if (mesNascimento > mesAtual || 
+        (mesNascimento === mesAtual && dataNascimento.getDate() > hoje.getDate())) {
+      idade--;
+    }
+
     try {
-      const response = await fetch("http://localhost:4000/api/v1/auth/register", {
+      const response = await fetch("http://localhost:4000/api/v1/pacientes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -129,15 +138,17 @@ const Register: React.FC = () => {
           genero: formData.genero,
           grau_de_instrucao: formData.grau_de_instrucao,
           data_nascimento: formData.data_nascimento,
-          idade: formData.idade,
+          idade: idade,
           endereco: formData.endereco,
           role: "paciente"
         }),
       });
 
-      const data = await response.json();
+      if (response.status === 201) {
+        navigate("/");
+      }
       if (!response.ok) {
-        throw new Error(data.message || "Erro ao cadastrar");
+        throw new Error("Erro ao cadastrar");
       }
 
       navigate("/login");
@@ -154,10 +165,10 @@ const Register: React.FC = () => {
           <Box sx={registerStyles.logoBox}>
             <img src={logo} alt="PAeSD Logo" style={registerStyles.logo} />
           </Box>
-          
-          <LinearProgress 
-            variant="determinate" 
-            value={progress} 
+
+          <LinearProgress
+            variant="determinate"
+            value={progress}
             sx={registerStyles.progressBar}
             color={progress === 100 ? "success" : "primary"}
           />
@@ -276,16 +287,6 @@ const Register: React.FC = () => {
                   required
                   InputLabelProps={{ shrink: true }}
                 />
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  label="Idade"
-                  name="idade"
-                  type="number"
-                  value={formData.idade}
-                  onChange={handleChange}
-                  required
-                />
               </Box>
             </Box>
 
@@ -397,7 +398,7 @@ const Register: React.FC = () => {
             </Box>
 
             {error && <Typography sx={registerStyles.errorMessage}>{error}</Typography>}
-            
+
             <Button
               fullWidth
               variant="contained"

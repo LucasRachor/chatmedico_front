@@ -7,13 +7,14 @@ import PatientHome from "../pages/PatientHome";
 import MedicalChat from "../pages/MedicalChat";
 import ProtectedRoute from "../Components/ProtectedRoute/ProtectedRoute";
 import NotFound from "../pages/NotFound";
+import ChatHistory from "../pages/ChatHistory";
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        
+
         {/* Rotas protegidas para médicos */}
         <Route
           path="/patient"
@@ -57,7 +58,17 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        { <Route path="*" element={<NotFound />} /> }
+
+        <Route
+          path="/chat-history"
+          element={
+            <ProtectedRoute allowedRoles={["paciente"]}>
+              <ChatHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        {<Route path="*" element={<NotFound />} />}
       </Routes>
     </BrowserRouter>
   );

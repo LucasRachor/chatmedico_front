@@ -34,7 +34,7 @@ const PatientHome: React.FC = () => {
             startIcon={<ChatBubbleOutline />}
             fullWidth
             sx={{ p: 2, fontSize: "1.1rem" }}
-            //onClick={() => navigate("/medicalChat")}
+            onClick={() => navigate("/chat-history")}
           >
             Histórico de Atendimentos
           </Button>

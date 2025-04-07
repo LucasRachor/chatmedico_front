@@ -12,7 +12,8 @@ import {
   Typography,
   Grid,
   CircularProgress,
-  Alert
+  Alert,
+  TextField
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
@@ -30,10 +31,17 @@ interface Pergunta {
 
 interface FormData {
   [key: string]: string;
+  temperatura: string;
+  pressaoArterial: string;
 }
 
 const HealthRiskForm: React.FC = () => {
-  const { control, handleSubmit } = useForm<FormData>();
+  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+    defaultValues: {
+      temperatura: '',
+      pressaoArterial: ''
+    }
+  });
   const navigate = useNavigate();
   const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,42 +82,47 @@ const HealthRiskForm: React.FC = () => {
     if (!token) return;
 
     try {
-      const pesoTotal = Object.values(data).reduce((total, peso) => {
-        return total + parseInt(peso || '0');
-      }, 0);
+      const pesoTotal = Object.entries(data)
+        .filter(([key]) => key.startsWith('pergunta_'))
+        .reduce((total, [_, valor]) => {
+          const peso = parseInt(valor.split('_')[2] || '0');
+          return total + peso;
+        }, 0);
 
       const payload = {
-        respostas: Object.entries(data).map(([perguntaIndex, peso]) => ({
-          perguntaIndex: parseInt(perguntaIndex.split('_')[1]),
-          peso: parseInt(peso)
-        })),
-        pesoTotal
+        respostas: Object.entries(data)
+          .filter(([key]) => key.startsWith('pergunta_'))
+          .map(([perguntaIndex, valor]) => {
+            const [_, __, peso] = valor.split('_');
+            return {
+              perguntaIndex: parseInt(perguntaIndex.split('_')[1]),
+              peso: parseInt(peso)
+            };
+          }),
+        pesoTotal,
+        temperatura: parseFloat(data.temperatura),
+        pressaoArterial: data.pressaoArterial
       };
 
-      if (pesoTotal < 50 ) {
+      if (pesoTotal < 50) {
         console.log('pesototal é menor que 50')
         navigate('/antendimento-ia')
       }
 
       if (pesoTotal > 50) {
         console.log('pesototal é maior que 50')
-        navigate('/medicalChat', { state: { pesoTotal } })
+        navigate('/medicalChat', { 
+          state: { 
+            pesoTotal,
+            temperatura: parseFloat(data.temperatura),
+            pressaoArterial: data.pressaoArterial
+          } 
+        })
       }
 
       console.log(payload);
 
-      //const response = await fetch('http://localhost:4000/api/v1/questionario/respostas', {
-      //  method: 'POST',
-      //  headers: {
-      //    'Content-Type': 'application/json',
-      //    'Authorization': `Bearer ${token}`
-      //  },
-      //  body: JSON.stringify(payload)
-      //});
 
-      //if (!response.ok) {
-      //  throw new Error('Erro ao enviar respostas');
-      //}
 
     } catch (error) {
       alert('Erro ao enviar formulário. Tente novamente.');
@@ -153,6 +166,60 @@ const HealthRiskForm: React.FC = () => {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="temperatura"
+                control={control}
+                rules={{
+                  required: 'Temperatura é obrigatória',
+                  pattern: {
+                    value: /^[0-9]{1,2}([,.][0-9]{1})?$/,
+                    message: 'Digite uma temperatura válida (ex: 36.5)'
+                  }
+                }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Temperatura (°C)"
+                    fullWidth
+                    error={!!errors.temperatura}
+                    helperText={errors.temperatura?.message}
+                    inputProps={{
+                      inputMode: 'decimal',
+                      pattern: '[0-9]{1,2}([,.][0-9]{1})?'
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="pressaoArterial"
+                control={control}
+                rules={{
+                  required: 'Pressão arterial é obrigatória',
+                  pattern: {
+                    value: /^[0-9]{2,3}\/[0-9]{2,3}$/,
+                    message: 'Digite a pressão no formato correto (ex: 120/80)'
+                  }
+                }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Pressão Arterial (mmHg)"
+                    fullWidth
+                    error={!!errors.pressaoArterial}
+                    helperText={errors.pressaoArterial?.message}
+                    inputProps={{
+                      inputMode: 'numeric',
+                      pattern: '[0-9]{2,3}/[0-9]{2,3}'
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+
             {perguntas.map((pergunta, index) => (
               <Grid item xs={12} key={index}>
                 <FormControl component="fieldset">
@@ -168,12 +235,17 @@ const HealthRiskForm: React.FC = () => {
                     name={`pergunta_${index}`}
                     control={control}
                     defaultValue=""
-                    render={({ field }) => (
-                      <RadioGroup {...field}>
+                    rules={{ required: 'Por favor, selecione uma opção' }}
+                    render={({ field: { value, onChange, ...field } }) => (
+                      <RadioGroup
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        {...field}
+                      >
                         {pergunta.alternativas.map((alt, altIndex) => (
                           <FormControlLabel
-                            key={altIndex}
-                            value={alt.peso.toString()}
+                            key={`${index}_${altIndex}`}
+                            value={`${index}_${altIndex}_${alt.peso}`}
                             control={<Radio />}
                             label={alt.alternativa}
                           />

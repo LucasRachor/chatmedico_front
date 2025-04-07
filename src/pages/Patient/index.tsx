@@ -9,11 +9,13 @@ const socket = io("http://localhost:4000");
 
 interface QueuePatient {
   pacienteId: string;
-  nome_completo: string;
+  nomeCompleto: string;
   horaChegada: string;
   idade: string;
   genero: string;
-  pesoTotal: string
+  pesoTotal: string;
+  temperatura: string;
+  pressaoArterial: string;
 }
 
 interface QueueData {
@@ -25,7 +27,36 @@ const PatientListScreen: React.FC = () => {
   const navigate = useNavigate();
   const [queuePatients, setQueuePatients] = useState<QueuePatient[]>([]);
   const [lastUpdate, setLastUpdate] = useState<string>("");
+  const [sortField, setSortField] = useState<"horaChegada" | "pesoTotal" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { token } = getAuthData();
+
+  const handleSort = (field: "horaChegada" | "pesoTotal") => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedPatients = [...queuePatients].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    if (sortField === "horaChegada") {
+      const [horaA, minutoA, segundoA] = a.horaChegada.split(':').map(Number);
+      const [horaB, minutoB, segundoB] = b.horaChegada.split(':').map(Number);
+      
+      const totalSegundosA = horaA * 3600 + minutoA * 60 + segundoA;
+      const totalSegundosB = horaB * 3600 + minutoB * 60 + segundoB;
+      
+      return sortDirection === "asc" ? totalSegundosA - totalSegundosB : totalSegundosB - totalSegundosA;
+    } else {
+      const pesoA = parseInt(a.pesoTotal);
+      const pesoB = parseInt(b.pesoTotal);
+      return sortDirection === "asc" ? pesoA - pesoB : pesoB - pesoA;
+    }
+  });
 
   useEffect(() => {
     if (!token) return;
@@ -33,19 +64,15 @@ const PatientListScreen: React.FC = () => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const doctorId = payload.sub;
 
-    // Notifica o servidor que um médico conectou
     socket.emit("doctorConnected", { doctorId });
 
-    // Solicita a fila atual
     socket.emit("getQueue");
 
-    // Escuta atualizações da fila
     socket.on("queueList", (data: QueueData) => {
       setQueuePatients(data.queue);
       setLastUpdate(new Date(data.timestamp).toLocaleString('pt-BR'));
     });
 
-    // Escuta atualizações gerais da fila (quando pacientes entram ou saem)
     socket.on("updateQueue", (queue: QueuePatient[]) => {
       setQueuePatients(queue);
       setLastUpdate(new Date().toLocaleString('pt-BR'));
@@ -63,20 +90,16 @@ const PatientListScreen: React.FC = () => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const medicoId = payload.sub;
 
-    // Cria a sala do chat
     const chatRoom = `chat-${patientId}-${medicoId}`;
 
-    // Emite o evento de aceitar paciente
     socket.emit("acceptPatient", {
       pacienteId: patientId,
       medicoId: medicoId,
       sala: chatRoom
     });
 
-    // Remove o paciente da fila
     setQueuePatients(prev => prev.filter(p => p.pacienteId !== patientId));
 
-    // Redireciona para o chat com os parâmetros necessários
     navigate("/medicalChat", {
       state: {
         sala: chatRoom,
@@ -106,21 +129,36 @@ const PatientListScreen: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Nome</TableCell>
-                <TableCell>Chegada</TableCell>
                 <TableCell>Idade</TableCell>
+                <TableCell 
+                  onClick={() => handleSort("horaChegada")}
+                  sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
+                >
+                  Chegada {sortField === "horaChegada" && (sortDirection === "asc" ? "↑" : "↓")}
+                </TableCell>
+                <TableCell>Temperatura</TableCell>
+                <TableCell>Pressão</TableCell>
                 <TableCell>Gênero</TableCell>
-                <TableCell>Risco</TableCell>
+                <TableCell 
+                  onClick={() => handleSort("pesoTotal")}
+                  sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
+                >
+                  Risco {sortField === "pesoTotal" && (sortDirection === "asc" ? "↑" : "↓")}
+                </TableCell>
                 <TableCell>Ação</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {queuePatients.map((patient) => (
+              {sortedPatients.map((patient) => (
                 <TableRow key={patient.pacienteId}>
-                  <TableCell>{patient.nome_completo || "Paciente sem nome"}</TableCell>
-                  <TableCell>{patient.horaChegada || "Paciente sem chegada"}</TableCell>
-                  <TableCell>{patient.idade}</TableCell>
+                  <TableCell>{patient.nomeCompleto || "Paciente sem nome"}</TableCell>
+                  <TableCell>{patient.idade} anos</TableCell>
+                  <TableCell>{patient.horaChegada}</TableCell> 
+                  <TableCell>{patient.temperatura}°C</TableCell>
+                  <TableCell>{patient.pressaoArterial} mmHg</TableCell>
                   <TableCell>{patient.genero}</TableCell>
                   <TableCell>{patient.pesoTotal}</TableCell>
+
                   <TableCell>
                     <Button
                       variant="contained"

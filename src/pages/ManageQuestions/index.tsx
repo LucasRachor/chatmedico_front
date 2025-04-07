@@ -22,46 +22,62 @@ import {
   Radio,
 } from "@mui/material";
 import { Add, Delete, Edit } from "@mui/icons-material";
+import axios from "axios";
 
 type Alternative = {
-  text: string;
-  weight: number;
+  alternativa: string;
+  peso: number;
 };
 
-type Question = {
-  text: string;
-  weight: number;
-  observations: string;
-  alternatives: Alternative[];
+type QuestionForm = {
+  pergunta: string;
+  peso: number;
+  observacao: string;
+  alternativas: Alternative[];
 };
 
 const RiskAssessment: React.FC = () => {
-  const { control, handleSubmit, reset, setValue } = useForm<Question>();
-  const { fields, append, remove } = useFieldArray({ control, name: "alternatives" });
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const { control, handleSubmit, reset, setValue } = useForm<QuestionForm>();
+  const { fields, append, remove } = useFieldArray({ control, name: "alternativas" });
+  const [questions, setQuestions] = useState<QuestionForm[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
   const [riskScore, setRiskScore] = useState<number | null>(null);
 
-  const onSubmit = (data: Question) => {
-    if (editingIndex !== null) {
-      const updatedQuestions = [...questions];
-      updatedQuestions[editingIndex] = data;
-      setQuestions(updatedQuestions);
-      setEditingIndex(null);
-    } else {
-      setQuestions([...questions, data]);
+  const onSubmit = async (data: QuestionForm) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Token não encontrado");
+      }
+
+      await axios.post("http://localhost:4000/api/v1/questionario", data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (editingIndex !== null) {
+        const updatedQuestions = [...questions];
+        updatedQuestions[editingIndex] = data;
+        setQuestions(updatedQuestions);
+        setEditingIndex(null);
+      } else {
+        setQuestions([...questions, data]);
+      }
+      reset();
+    } catch (error) {
+      console.error("Erro ao criar questionário:", error);
     }
-    reset();
   };
 
   const handleEdit = (index: number) => {
     const question = questions[index];
-    setValue("text", question.text);
-    setValue("weight", question.weight);
-    setValue("observations", question.observations);
-    setValue("alternatives", question.alternatives);
+    setValue("pergunta", question.pergunta);
+    setValue("peso", question.peso);
+    setValue("observacao", question.observacao);
+    setValue("alternativas", question.alternativas);
     setEditingIndex(index);
   };
 
@@ -78,7 +94,6 @@ const RiskAssessment: React.FC = () => {
     setRiskScore(totalRisk);
   };
 
-  
   return (
     <Container maxWidth="md">
       <Box sx={{ bgcolor: "#F7FAFC", p: { xs: 2, sm: 4 }, borderRadius: 2, boxShadow: 2, mt: 5 }}>
@@ -86,12 +101,11 @@ const RiskAssessment: React.FC = () => {
           Criar e Avaliar Formulário de Risco
         </Typography>
 
-        {/* Formulário para adicionar perguntas */}
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Controller
-                name="text"
+                name="pergunta"
                 control={control}
                 defaultValue=""
                 render={({ field }) => (
@@ -102,7 +116,7 @@ const RiskAssessment: React.FC = () => {
 
             <Grid item xs={6}>
               <Controller
-                name="weight"
+                name="peso"
                 control={control}
                 defaultValue={0}
                 render={({ field }) => (
@@ -113,11 +127,11 @@ const RiskAssessment: React.FC = () => {
 
             <Grid item xs={12}>
               <Controller
-                name="observations"
+                name="observacao"
                 control={control}
                 defaultValue=""
                 render={({ field }) => (
-                  <TextField {...field} fullWidth label="Observações" variant="outlined" />
+                  <TextField {...field} fullWidth label="Observação" variant="outlined" />
                 )}
               />
             </Grid>
@@ -129,7 +143,7 @@ const RiskAssessment: React.FC = () => {
                 <Grid container spacing={2} key={alt.id} alignItems="center">
                   <Grid item xs={6}>
                     <Controller
-                      name={`alternatives.${index}.text`}
+                      name={`alternativas.${index}.alternativa`}
                       control={control}
                       defaultValue=""
                       render={({ field }) => (
@@ -139,7 +153,7 @@ const RiskAssessment: React.FC = () => {
                   </Grid>
                   <Grid item xs={4}>
                     <Controller
-                      name={`alternatives.${index}.weight`}
+                      name={`alternativas.${index}.peso`}
                       control={control}
                       defaultValue={0}
                       render={({ field }) => (
@@ -154,7 +168,7 @@ const RiskAssessment: React.FC = () => {
                   </Grid>
                 </Grid>
               ))}
-              <Button variant="outlined" startIcon={<Add />} onClick={() => append({ text: "", weight: 0 })}>
+              <Button variant="outlined" startIcon={<Add />} onClick={() => append({ alternativa: "", peso: 0 })}>
                 Adicionar Alternativa
               </Button>
             </Grid>
@@ -174,21 +188,21 @@ const RiskAssessment: React.FC = () => {
               <TableCell>Pergunta</TableCell>
               <TableCell>Peso</TableCell>
               <TableCell>Alternativas</TableCell>
-              <TableCell>Observações</TableCell>
+              <TableCell>Observação</TableCell>
               <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {questions.map((question, index) => (
               <TableRow key={index}>
-                <TableCell>{question.text}</TableCell>
-                <TableCell>{question.weight}</TableCell>
+                <TableCell>{question.pergunta}</TableCell>
+                <TableCell>{question.peso}</TableCell>
                 <TableCell>
-                  {question.alternatives.map((alt, i) => (
-                    <div key={i}>{`${alt.text} (Peso: ${alt.weight})`}</div>
+                  {question.alternativas.map((alt, i) => (
+                    <div key={i}>{`${alt.alternativa} (Peso: ${alt.peso})`}</div>
                   ))}
                 </TableCell>
-                <TableCell>{question.observations}</TableCell>
+                <TableCell>{question.observacao}</TableCell>
                 <TableCell>
                   <IconButton color="primary" onClick={() => handleEdit(index)}>
                     <Edit />
@@ -212,10 +226,10 @@ const RiskAssessment: React.FC = () => {
           <DialogContent>
             {questions.map((question, index) => (
               <Box key={index} mt={2}>
-                <Typography>{question.text}</Typography>
+                <Typography>{question.pergunta}</Typography>
                 <RadioGroup onChange={(e) => handleAnswerChange(index, Number(e.target.value))}>
-                  {question.alternatives.map((alt, i) => (
-                    <FormControlLabel key={i} value={alt.weight} control={<Radio />} label={alt.text} />
+                  {question.alternativas.map((alt, i) => (
+                    <FormControlLabel key={i} value={alt.peso} control={<Radio />} label={alt.alternativa} />
                   ))}
                 </RadioGroup>
               </Box>

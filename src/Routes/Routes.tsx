@@ -7,7 +7,6 @@ import PatientHome from "../pages/PatientHome";
 import MedicalChat from "../pages/MedicalChat";
 import ProtectedRoute from "../Components/ProtectedRoute/ProtectedRoute";
 import NotFound from "../pages/NotFound";
-import ChatHistory from "../pages/ChatHistory";
 
 const AppRoutes = () => {
   return (
@@ -55,15 +54,6 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={["paciente"]}>
               <HealthRiskForm />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/chat-history"
-          element={
-            <ProtectedRoute allowedRoles={["paciente"]}>
-              <ChatHistory />
             </ProtectedRoute>
           }
         />

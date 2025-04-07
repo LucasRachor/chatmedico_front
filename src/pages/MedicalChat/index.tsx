@@ -11,10 +11,12 @@ interface LocationState {
   remetenteId?: string;
   mensagemInicial?: string;
   pesoTotal?: number;
+  temperatura?: number;
+  pressaoArterial?: string;
 }
 
 interface PacienteData {
-  nome_completo: string;
+  nomeCompleto: string;
   idade: number;
   genero: string;
 }
@@ -51,7 +53,7 @@ const MedicalChat: React.FC = () => {
       console.log(data)
       setPacientAge(data.idade);
       setPacientGender(data.genero);
-      setPacientName(data.nome_completo);
+      setPacientName(data.nomeCompleto);
     } catch (error) {
       console.error('Erro ao buscar dados do paciente:', error);
     }
@@ -151,20 +153,20 @@ const MedicalChat: React.FC = () => {
     };
   }, [token, navigate, state, sala]);
 
-  // Novo useEffect para atualizar a fila quando os dados do paciente forem recebidos
   useEffect(() => {
     if (!token || !pacientAge || !pacientGender) return;
 
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = payload.sub;
-
-    // Emite o evento de entrar na fila
+    
     socket.emit("enterQueue", {
       pacienteId: userId,
-      nome_completo: pacientName,
+      nomeCompleto: pacientName,
       idade: pacientAge,
       genero: pacientGender,
       pesoTotal: state?.pesoTotal || 0,
+      temperatura: state?.temperatura || 0,
+      pressaoArterial: state?.pressaoArterial || "0/0",
       horaChegada: new Date().toLocaleString('pt-BR', {
         hour: '2-digit',
         minute: '2-digit',

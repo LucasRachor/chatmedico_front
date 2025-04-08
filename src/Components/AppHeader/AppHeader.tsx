@@ -2,10 +2,34 @@ import { useState } from "react";
 import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Avatar, Box } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import logo from "../../assets/logo-web.svg";
-import { logout } from "../../utils/auth";
+import { getAuthData, logout } from "../../utils/auth";
 
 const AppHeader: React.FC = () => {
+  const { token } = getAuthData();
+  const [userName, setUserName] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
+  const userId = payload?.sub;
+
+  const fetchPacienteData = async (userId: string) => {
+    if (!token || !userId) return;
+    try {
+      const response = await fetch(`http://localhost:4000/api/v1/users/find/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados do paciente');
+      }
+
+      const data = await response.json();
+      setUserName(data)
+    } catch (error) {
+      console.error('Erro ao buscar dados do paciente:', error);
+    }
+  };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -18,6 +42,8 @@ const AppHeader: React.FC = () => {
   const handleLogout = () => {
     logout();
   };
+
+  fetchPacienteData(userId)
 
   return (
     <AppBar
@@ -37,7 +63,7 @@ const AppHeader: React.FC = () => {
         </Box>
         <Box display="flex" alignItems="center">
           <Typography variant="body1" sx={{ mr: 2, color: "GrayText" }}>
-            Dr. Mateus Ramos de Oliveira
+            {userName}
           </Typography>
           <Avatar alt="Dr. Mateus Ramos de Oliveira" src="/path-to-avatar.jpg" />
           <IconButton onClick={handleMenuOpen}>

@@ -5,6 +5,7 @@ import HealthRiskForm from "../pages/HealthRiskForm";
 import ManageQuestions from "../pages/ManageQuestions";
 import PatientHome from "../pages/PatientHome";
 import MedicalChat from "../pages/MedicalChat";
+import PatientRegistration from "../pages/PatientRegistration";
 import ProtectedRoute from "../Components/ProtectedRoute/ProtectedRoute";
 import NotFound from "../pages/NotFound";
 
@@ -13,6 +14,7 @@ const AppRoutes = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/register" element={<PatientRegistration />} />
 
         {/* Rotas protegidas para médicos */}
         <Route

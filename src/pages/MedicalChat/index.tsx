@@ -118,13 +118,13 @@ const MedicalChat: React.FC = () => {
       console.log("Mensagem recebida:", data);
       // Não adiciona a mensagem se for a mensagem inicial e já tiver sido enviada
       if (!(data.mensagem === state?.mensagemInicial && initialMessageSent.current)) {
-        setMessages((prev) => [...prev, { sender: data.remetenteId, text: data.mensagem }]);
+        setMessages((prev) => [...prev, { sender: data.remetenteId, text: data.mensagem}]);
       }
     });
 
     // Escuta quando o chat é encerrado
     socket.on("chatEnded", (data) => {
-      // Remove o paciente da fila
+      // Remove o pa ciente da fila
       const pacienteId = userRole === "paciente" ? userId : data.pacienteId;
       if (pacienteId) {
         socket.emit("leaveQueue", { pacienteId });

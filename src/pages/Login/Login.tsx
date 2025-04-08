@@ -97,7 +97,7 @@ const Login: React.FC = () => {
             }}
           />
           {error && <Typography color="error">{error}</Typography>}
-          <Typography sx={loginStyles.forgotPassword}>Esqueceu a senha? Clique aqui.</Typography>
+          <Typography sx={loginStyles.forgotPassword}>Não possui cadastro? Clique aqui!</Typography>
           <Button fullWidth variant="contained" color="primary" size="large" sx={loginStyles.button} onClick={handleLogin}>
             LOGIN
           </Button>

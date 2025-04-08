@@ -26,6 +26,7 @@ interface QueueData {
 const PatientListScreen: React.FC = () => {
   const navigate = useNavigate();
   const [queuePatients, setQueuePatients] = useState<QueuePatient[]>([]);
+  const [userName, setUserName] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>("");
   const [sortField, setSortField] = useState<"horaChegada" | "pesoTotal" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -40,16 +41,19 @@ const PatientListScreen: React.FC = () => {
     }
   };
 
+  const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
+  const userId = payload?.sub;
+
   const sortedPatients = [...queuePatients].sort((a, b) => {
     if (!sortField) return 0;
-    
+
     if (sortField === "horaChegada") {
       const [horaA, minutoA, segundoA] = a.horaChegada.split(':').map(Number);
       const [horaB, minutoB, segundoB] = b.horaChegada.split(':').map(Number);
-      
+
       const totalSegundosA = horaA * 3600 + minutoA * 60 + segundoA;
       const totalSegundosB = horaB * 3600 + minutoB * 60 + segundoB;
-      
+
       return sortDirection === "asc" ? totalSegundosA - totalSegundosB : totalSegundosB - totalSegundosA;
     } else {
       const pesoA = parseInt(a.pesoTotal);
@@ -63,6 +67,28 @@ const PatientListScreen: React.FC = () => {
 
     const payload = JSON.parse(atob(token.split('.')[1]));
     const doctorId = payload.sub;
+
+    const fetchPacienteData = async (userId: string) => {
+      if (!token || !userId) return;
+      try {
+        const response = await fetch(`http://localhost:4000/api/v1/users/find/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar dados do paciente');
+        }
+
+        const userName = await response.json();
+        setUserName(userName)
+      } catch (error) {
+        console.error('Erro ao buscar dados do paciente:', error);
+      }
+    };
+
+    fetchPacienteData(userId)
 
     socket.emit("doctorConnected", { doctorId });
 
@@ -104,7 +130,8 @@ const PatientListScreen: React.FC = () => {
       state: {
         sala: chatRoom,
         remetenteId: medicoId,
-        mensagemInicial: "Olá! Como posso ajudar você hoje?"
+        mensagemInicial: "Olá! Como posso ajudar você hoje?",
+        nomeCompleto: userName,
       }
     });
   };
@@ -130,7 +157,7 @@ const PatientListScreen: React.FC = () => {
               <TableRow>
                 <TableCell>Nome</TableCell>
                 <TableCell>Idade</TableCell>
-                <TableCell 
+                <TableCell
                   onClick={() => handleSort("horaChegada")}
                   sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
                 >
@@ -139,7 +166,7 @@ const PatientListScreen: React.FC = () => {
                 <TableCell>Temperatura</TableCell>
                 <TableCell>Pressão</TableCell>
                 <TableCell>Gênero</TableCell>
-                <TableCell 
+                <TableCell
                   onClick={() => handleSort("pesoTotal")}
                   sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
                 >
@@ -153,7 +180,7 @@ const PatientListScreen: React.FC = () => {
                 <TableRow key={patient.pacienteId}>
                   <TableCell>{patient.nomeCompleto || "Paciente sem nome"}</TableCell>
                   <TableCell>{patient.idade} anos</TableCell>
-                  <TableCell>{patient.horaChegada}</TableCell> 
+                  <TableCell>{patient.horaChegada}</TableCell>
                   <TableCell>{patient.temperatura}°C</TableCell>
                   <TableCell>{patient.pressaoArterial} mmHg</TableCell>
                   <TableCell>{patient.genero}</TableCell>

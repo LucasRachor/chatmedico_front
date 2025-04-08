@@ -119,10 +119,7 @@ const HealthRiskForm: React.FC = () => {
           } 
         })
       }
-
       console.log(payload);
-
-
 
     } catch (error) {
       alert('Erro ao enviar formulário. Tente novamente.');

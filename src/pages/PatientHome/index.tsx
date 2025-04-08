@@ -2,12 +2,17 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Button, Container, Typography, Paper } from "@mui/material";
 import { ChatBubbleOutline, Assignment } from "@mui/icons-material";
+import AppHeader from "../../Components/AppHeader/AppHeader";
 
 const PatientHome: React.FC = () => {
   const navigate = useNavigate();
 
   return (
     <Container maxWidth="md">
+      <AppHeader />
+      <Button color="primary" variant="contained" onClick={() => navigate("/manageQuestions")} sx={{ width: 200, mb: 3, ml: 1 }}>
+        Criar Formulário
+      </Button>
       <Box sx={{ mt: 5, textAlign: "center" }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
           Bem-vindo à Plataforma de Atendimento em Saúde Digital

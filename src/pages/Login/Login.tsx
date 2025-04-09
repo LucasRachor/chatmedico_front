@@ -7,6 +7,7 @@ import fundoLogin from "../../assets/fundo-login.jpg";
 import logo from "../../assets/logo.svg";
 import loginStyles from "./Login.styles";
 import { decodeJwtToken } from "../../utils/jwt";
+import { API_URL } from "../../config/api";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     setError("");
     try {
-      const response = await fetch("http://localhost:4000/api/v1/auth/login", {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,7 +41,7 @@ const Login: React.FC = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("role", decodedToken.role);
 
-      if (decodedToken.role === "medico" || "admin") {
+      if (decodedToken.role === "medico" || decodedToken.role === "admin") {
         navigate("/patient");
       } else if (decodedToken.role === "paciente") {
         navigate("/patientHome");

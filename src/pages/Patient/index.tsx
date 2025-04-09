@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { getAuthData } from "../../utils/auth";
+import { API_URL } from "../../config/api";
 
-const socket = io("http://localhost:4000");
+const socket = io(API_URL.replace('/api/v1', ''));
 
 interface QueuePatient {
   pacienteId: string;
@@ -71,7 +72,7 @@ const PatientListScreen: React.FC = () => {
     const fetchPacienteData = async (userId: string) => {
       if (!token || !userId) return;
       try {
-        const response = await fetch(`http://localhost:4000/api/v1/users/find/${userId}`, {
+        const response = await fetch(`${API_URL}/users/find/${userId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

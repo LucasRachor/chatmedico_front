@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography, CircularProgress, Button, TextField, Paper, List, ListItem, } from "@mui/material";
-import { io } from "socket.io-client";
-import { useNavigate, useLocation } from "react-router-dom";
+import { io, Socket } from "socket.io-client";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
+import { API_URL } from "../../config/api";
 
-const socket = io("http://localhost:4000");
+const socket = io(API_URL.replace('/api/v1', ''));
 
 interface LocationState {
   sala?: string;
@@ -39,7 +40,7 @@ const MedicalChat: React.FC = () => {
 
   const fetchPacienteData = async (pacienteId: string) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/pacientes/${pacienteId}`, {
+      const response = await fetch(`${API_URL}/pacientes/${pacienteId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

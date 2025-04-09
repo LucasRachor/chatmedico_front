@@ -29,6 +29,7 @@ import {
 import { KeyboardArrowDown, KeyboardArrowUp, Add, Edit, Delete } from '@mui/icons-material';
 import axios from 'axios';
 import { getAuthData } from '../../utils/auth';
+import { API_URL } from "../../config/api";
 
 interface Professional {
   id: string;
@@ -64,7 +65,7 @@ const ManageProfessionals: React.FC = () => {
 
   const fetchProfessionals = async () => {
     try {
-      const response = await axios.get('http://localhost:4000/api/v1/equipe-medica/medicos', {
+      const response = await axios.get(`${API_URL}/equipe-medica/medicos`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -90,11 +91,11 @@ const ManageProfessionals: React.FC = () => {
 
     try {
       const { tipo, ...data } = formData;
-      const endpoint = tipo === 'medico'
-        ? 'http://localhost:4000/api/v1/equipe-medica/medico'
-        : 'http://localhost:4000/api/v1/equipe-medica/enfermeiro';
+      const url = formData.tipo === 'medico'
+        ? `${API_URL}/equipe-medica/medico`
+        : `${API_URL}/equipe-medica/enfermeiro`;
 
-      await axios.post(endpoint, data, {
+      await axios.post(url, data, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -119,7 +120,7 @@ const ManageProfessionals: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`http://localhost:4000/api/v1/equipe-medica/${id}`, {
+      await axios.delete(`${API_URL}/equipe-medica/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -151,7 +152,7 @@ const ManageProfessionals: React.FC = () => {
 
     try {
       const { tipo, ...data } = formData;
-      await axios.patch(`http://localhost:4000/api/v1/equipe-medica/${editingProfessional.id}`, data, {
+      await axios.patch(`${API_URL}/equipe-medica/${editingProfessional.id}`, data, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

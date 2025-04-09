@@ -22,6 +22,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import ptBR from "date-fns/locale/pt-BR"
 import { format } from 'date-fns';
+import { API_URL } from "../../config/api";
 
 interface EnderecoForm {
     rua: string;
@@ -93,7 +94,7 @@ const PatientRegistration: React.FC = () => {
                 }
             };
 
-            const response = await fetch('http://localhost:4000/api/v1/pacientes', {
+            const response = await fetch(`${API_URL}/pacientes`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

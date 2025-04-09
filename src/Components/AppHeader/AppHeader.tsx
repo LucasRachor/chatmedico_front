@@ -3,6 +3,7 @@ import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Avatar, Box } 
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import logo from "../../assets/logo-web.svg";
 import { getAuthData, logout } from "../../utils/auth";
+import { API_URL } from "../../config/api";
 
 const AppHeader: React.FC = () => {
   const { token } = getAuthData();
@@ -14,7 +15,7 @@ const AppHeader: React.FC = () => {
   const fetchPacienteData = async (userId: string) => {
     if (!token || !userId) return;
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/users/find/${userId}`, {
+      const response = await fetch(`${API_URL}/users/find/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

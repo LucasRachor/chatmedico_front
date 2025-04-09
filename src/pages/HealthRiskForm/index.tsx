@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
+import { API_URL } from "../../config/api";
 
 interface Alternativa {
   alternativa: string;
@@ -56,7 +57,7 @@ const HealthRiskForm: React.FC = () => {
       }
 
       try {
-        const response = await fetch('http://localhost:4000/api/v1/questionario', {
+        const response = await fetch(`${API_URL}/questionario`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

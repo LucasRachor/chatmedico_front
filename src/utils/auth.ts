@@ -1,4 +1,5 @@
 import { decodeJwtToken } from './jwt';
+import { API_URL } from "../config/api";
 
 interface AuthResponse {
   message: string;
@@ -18,7 +19,7 @@ export const verifyToken = async (): Promise<boolean> => {
   }
 
   try {
-    const response = await fetch('http://localhost:4000/api/v1/auth/verify', {
+    const response = await fetch(`${API_URL}/auth/verify`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`

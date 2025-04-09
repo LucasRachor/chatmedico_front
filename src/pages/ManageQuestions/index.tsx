@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import { Add, Delete, Edit } from "@mui/icons-material";
 import axios from "axios";
+import { API_URL } from "../../config/api";
 
 type Alternative = {
   alternativa: string;
@@ -52,7 +53,7 @@ const RiskAssessment: React.FC = () => {
         throw new Error("Token não encontrado");
       }
 
-      await axios.post("http://localhost:4000/api/v1/questionario", data, {
+      await axios.post(`${API_URL}/questionario`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -8,6 +8,7 @@ import MedicalChat from "../pages/MedicalChat";
 import PatientRegistration from "../pages/PatientRegistration";
 import ProtectedRoute from "../Components/ProtectedRoute/ProtectedRoute";
 import NotFound from "../pages/NotFound";
+import ManageProfessionals from "../pages/ManageProfessionals/ManageProfessionals";
 
 const AppRoutes = () => {
   return (
@@ -16,11 +17,21 @@ const AppRoutes = () => {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<PatientRegistration />} />
 
+        {/* Rotas protegidas para admins */}
+        <Route
+          path="/manage-professionals"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ManageProfessionals />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Rotas protegidas para médicos */}
         <Route
           path="/patient"
           element={
-            <ProtectedRoute allowedRoles={["medico", "enfermeiro"]}>
+            <ProtectedRoute allowedRoles={["medico", "enfermeiro", "admin"]}>
               <PatientListScreen />
             </ProtectedRoute>
           }
@@ -28,7 +39,7 @@ const AppRoutes = () => {
         <Route
           path="/manageQuestions"
           element={
-            <ProtectedRoute allowedRoles={["medico", "enfermeiro"]}>
+            <ProtectedRoute allowedRoles={["medico", "enfermeiro", "admin"]}>
               <ManageQuestions />
             </ProtectedRoute>
           }
@@ -36,7 +47,7 @@ const AppRoutes = () => {
         <Route
           path="/medicalChat"
           element={
-            <ProtectedRoute allowedRoles={["medico", "paciente", "enfermeiro"]}>
+            <ProtectedRoute allowedRoles={["medico", "paciente", "enfermeiro", "admin"]}>
               <MedicalChat />
             </ProtectedRoute>
           }

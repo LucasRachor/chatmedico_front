@@ -65,7 +65,7 @@ const AppHeader: React.FC = () => {
           <Typography variant="body1" sx={{ mr: 2, color: "GrayText" }}>
             {userName}
           </Typography>
-          <Avatar alt="Dr. Mateus Ramos de Oliveira" src="/path-to-avatar.jpg" />
+          <Avatar alt={userName || ""} src="/path-to-avatar.jpg" />
           <IconButton onClick={handleMenuOpen}>
             <MoreVertIcon />
           </IconButton>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, TextField, Button, Typography, Box, Paper, InputAdornment } from "@mui/material";
+import { Container, TextField, Button, Typography, Box, Paper, InputAdornment, Link } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import fundoLogin from "../../assets/fundo-login.jpg";
@@ -40,7 +40,7 @@ const Login: React.FC = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("role", decodedToken.role);
 
-      if (decodedToken.role === "medico") {
+      if (decodedToken.role === "medico" || "admin") {
         navigate("/patient");
       } else if (decodedToken.role === "paciente") {
         navigate("/patientHome");
@@ -97,7 +97,7 @@ const Login: React.FC = () => {
             }}
           />
           {error && <Typography color="error">{error}</Typography>}
-          <Typography sx={loginStyles.forgotPassword}>Não possui cadastro? Clique aqui!</Typography>
+          <Link href="/register" sx={loginStyles.registerLink}>Não possui cadastro? Clique aqui!</Link>
           <Button fullWidth variant="contained" color="primary" size="large" sx={loginStyles.button} onClick={handleLogin}>
             LOGIN
           </Button>

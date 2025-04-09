@@ -91,11 +91,15 @@ const ManageProfessionals: React.FC = () => {
 
     try {
       const { tipo, ...data } = formData;
+      const processedData = Object.fromEntries(
+        Object.entries(data).map(([key, value]) => [key, value === '' ? null : value])
+      );
+
       const url = formData.tipo === 'medico'
         ? `${API_URL}/equipe-medica/medico`
         : `${API_URL}/equipe-medica/enfermeiro`;
 
-      await axios.post(url, data, {
+      await axios.post(url, processedData, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -152,7 +156,11 @@ const ManageProfessionals: React.FC = () => {
 
     try {
       const { tipo, ...data } = formData;
-      await axios.patch(`${API_URL}/equipe-medica/${editingProfessional.id}`, data, {
+      const processedData = Object.fromEntries(
+        Object.entries(data).map(([key, value]) => [key, value === '' ? null : value])
+      );
+
+      await axios.patch(`${API_URL}/equipe-medica/${editingProfessional.id}`, processedData, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

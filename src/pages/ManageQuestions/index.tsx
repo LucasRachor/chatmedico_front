@@ -97,13 +97,20 @@ const RiskAssessment: React.FC = () => {
 
   return (
     <Container maxWidth="md">
-      <Box sx={{ bgcolor: "#F7FAFC", p: { xs: 2, sm: 4 }, borderRadius: 2, boxShadow: 2, mt: 5 }}>
-        <Typography variant="h5" align="center" gutterBottom>
+      <Box sx={{ 
+        bgcolor: "#F7FAFC", 
+        p: { xs: 2, sm: 4 }, 
+        borderRadius: 2, 
+        boxShadow: 2, 
+        mt: 5,
+        mb: 5 
+      }}>
+        <Typography variant="h5" align="center" gutterBottom sx={{ mb: 4 }}>
           Criar e Avaliar Formulário de Risco
         </Typography>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
             <Grid item xs={12}>
               <Controller
                 name="pergunta"
@@ -139,9 +146,9 @@ const RiskAssessment: React.FC = () => {
 
             {/* Alternativas de Resposta */}
             <Grid item xs={12}>
-              <Typography variant="subtitle1">Alternativas de Resposta</Typography>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>Alternativas de Resposta</Typography>
               {fields.map((alt, index) => (
-                <Grid container spacing={2} key={alt.id} alignItems="center">
+                <Grid container spacing={2} key={alt.id} alignItems="center" sx={{ mb: 2 }}>
                   <Grid item xs={6}>
                     <Controller
                       name={`alternativas.${index}.alternativa`}
@@ -169,12 +176,17 @@ const RiskAssessment: React.FC = () => {
                   </Grid>
                 </Grid>
               ))}
-              <Button variant="outlined" startIcon={<Add />} onClick={() => append({ alternativa: "", peso: 0 })}>
+              <Button 
+                variant="outlined" 
+                startIcon={<Add />} 
+                onClick={() => append({ alternativa: "", peso: 0 })}
+                sx={{ mt: 2 }}
+              >
                 Adicionar Alternativa
               </Button>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid item xs={12} sx={{ mt: 2 }}>
               <Button type="submit" variant="contained" color="primary" fullWidth>
                 {editingIndex !== null ? "Atualizar Pergunta" : "Adicionar Pergunta"}
               </Button>
@@ -183,54 +195,68 @@ const RiskAssessment: React.FC = () => {
         </form>
 
         {/* Tabela de perguntas */}
-        <Table sx={{ mt: 3 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Pergunta</TableCell>
-              <TableCell>Peso</TableCell>
-              <TableCell>Alternativas</TableCell>
-              <TableCell>Observação</TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {questions.map((question, index) => (
-              <TableRow key={index}>
-                <TableCell>{question.pergunta}</TableCell>
-                <TableCell>{question.peso}</TableCell>
-                <TableCell>
-                  {question.alternativas.map((alt, i) => (
-                    <div key={i}>{`${alt.alternativa} (Peso: ${alt.peso})`}</div>
-                  ))}
-                </TableCell>
-                <TableCell>{question.observacao}</TableCell>
-                <TableCell>
-                  <IconButton color="primary" onClick={() => handleEdit(index)}>
-                    <Edit />
-                  </IconButton>
-                  <IconButton color="error" onClick={() => handleDelete(index)}>
-                    <Delete />
-                  </IconButton>
-                </TableCell>
+        <Box sx={{ mt: 4, mb: 4 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Pergunta</TableCell>
+                <TableCell>Peso</TableCell>
+                <TableCell>Alternativas</TableCell>
+                <TableCell>Observação</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {questions.map((question, index) => (
+                <TableRow key={index}>
+                  <TableCell>{question.pergunta}</TableCell>
+                  <TableCell>{question.peso}</TableCell>
+                  <TableCell>
+                    {question.alternativas.map((alt, i) => (
+                      <Box key={i} sx={{ mb: 1 }}>{`${alt.alternativa} (Peso: ${alt.peso})`}</Box>
+                    ))}
+                  </TableCell>
+                  <TableCell>{question.observacao}</TableCell>
+                  <TableCell>
+                    <IconButton color="primary" onClick={() => handleEdit(index)}>
+                      <Edit />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(index)}>
+                      <Delete />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
 
         {/* Formulário do paciente */}
-        <Button variant="contained" color="secondary" fullWidth onClick={() => setOpenDialog(true)}>
+        <Button 
+          variant="contained" 
+          color="secondary" 
+          fullWidth 
+          onClick={() => setOpenDialog(true)}
+          sx={{ mb: 3 }}
+        >
           Preencher Formulário
         </Button>
 
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth>
+        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="md">
           <DialogTitle>Preencher Avaliação</DialogTitle>
           <DialogContent>
             {questions.map((question, index) => (
-              <Box key={index} mt={2}>
-                <Typography>{question.pergunta}</Typography>
+              <Box key={index} mt={3} mb={3}>
+                <Typography variant="subtitle1" gutterBottom>{question.pergunta}</Typography>
                 <RadioGroup onChange={(e) => handleAnswerChange(index, Number(e.target.value))}>
                   {question.alternativas.map((alt, i) => (
-                    <FormControlLabel key={i} value={alt.peso} control={<Radio />} label={alt.alternativa} />
+                    <FormControlLabel 
+                      key={i} 
+                      value={alt.peso} 
+                      control={<Radio />} 
+                      label={alt.alternativa} 
+                      sx={{ mb: 1 }}
+                    />
                   ))}
                 </RadioGroup>
               </Box>
@@ -243,7 +269,20 @@ const RiskAssessment: React.FC = () => {
           </DialogActions>
         </Dialog>
 
-        {riskScore !== null && <Typography align="center">Risco Total: {riskScore}</Typography>}
+        {riskScore !== null && (
+          <Typography 
+            align="center" 
+            variant="h6" 
+            sx={{ 
+              mt: 3, 
+              p: 2, 
+              bgcolor: riskScore > 50 ? '#ffebee' : '#e8f5e9',
+              borderRadius: 2
+            }}
+          >
+            Risco Total: {riskScore}
+          </Typography>
+        )}
       </Box>
     </Container>
   );

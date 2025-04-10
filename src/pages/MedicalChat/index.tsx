@@ -51,7 +51,6 @@ const MedicalChat: React.FC = () => {
       }
 
       const data: PacienteData = await response.json();
-      console.log(data)
       setPacientAge(data.idade);
       setPacientGender(data.genero);
       setPacientName(data.nomeCompleto);
@@ -116,7 +115,6 @@ const MedicalChat: React.FC = () => {
 
     // Escuta mensagens do chat
     socket.on("message", (data) => {
-      console.log("Mensagem recebida:", data);
       // Não adiciona a mensagem se for a mensagem inicial e já tiver sido enviada
       if (!(data.mensagem === state?.mensagemInicial && initialMessageSent.current)) {
         setMessages((prev) => [...prev, { sender: data.remetenteId, text: data.mensagem}]);

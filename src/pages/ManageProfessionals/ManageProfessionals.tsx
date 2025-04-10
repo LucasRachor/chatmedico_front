@@ -84,6 +84,46 @@ const ManageProfessionals: React.FC = () => {
     }));
   };
 
+  const formatCoren = (value: string) => {
+    // Remove todos os caracteres não numéricos
+    const numbers = value.replace(/\D/g, '');
+    // Limita a 6 dígitos
+    const limitedNumbers = numbers.slice(0, 6);
+    
+    if (limitedNumbers.length <= 3) {
+      return `COREN-AM ${limitedNumbers}`;
+    } else {
+      return `COREN-AM ${limitedNumbers.slice(0, 3)}.${limitedNumbers.slice(3)}-ENF`;
+    }
+  };
+
+  const formatCRM = (value: string) => {
+    // Remove todos os caracteres não numéricos
+    const numbers = value.replace(/\D/g, '');
+    // Limita a 4 dígitos
+    const limitedNumbers = numbers.slice(0, 4);
+    
+    return `CRM-AM ${limitedNumbers}`;
+  };
+
+  const handleCorenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    const formattedValue = formatCoren(value);
+    setFormData(prev => ({
+      ...prev,
+      coren: formattedValue
+    }));
+  };
+
+  const handleCRMChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    const formattedValue = formatCRM(value);
+    setFormData(prev => ({
+      ...prev,
+      CRM: formattedValue
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -352,9 +392,10 @@ const ManageProfessionals: React.FC = () => {
                 label="CRM"
                 name="CRM"
                 value={formData.CRM}
-                onChange={handleInputChange}
+                onChange={handleCRMChange}
                 required
                 sx={{ mb: 2 }}
+                placeholder="Digite apenas os números"
               />
             ) : (
               <TextField
@@ -362,9 +403,10 @@ const ManageProfessionals: React.FC = () => {
                 label="COREN"
                 name="coren"
                 value={formData.coren}
-                onChange={handleInputChange}
+                onChange={handleCorenChange}
                 required
                 sx={{ mb: 2 }}
+                placeholder="Digite apenas os números"
               />
             )}
           </Box>

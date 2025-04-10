@@ -53,6 +53,21 @@ const PatientRegistration: React.FC = () => {
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
+    const formatCPF = (value: string) => {
+        const numbers = value.replace(/\D/g, '');
+        if (numbers.length <= 3) return numbers;
+        if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+        if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+        return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9, 11)}`;
+    };
+
+    const formatPhone = (value: string) => {
+        const numbers = value.replace(/\D/g, '');
+        if (numbers.length <= 2) return numbers;
+        if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    };
+
     const { control, handleSubmit, formState: { errors }, setValue } = useForm<PatientForm>({
         defaultValues: {
             endereco: {
@@ -244,6 +259,10 @@ const PatientRegistration: React.FC = () => {
                                                 error={!!errors.cpf}
                                                 helperText={errors.cpf?.message}
                                                 placeholder="000.000.000-00"
+                                                onChange={(e) => {
+                                                    const formattedValue = formatCPF(e.target.value);
+                                                    field.onChange(formattedValue);
+                                                }}
                                             />
                                         )}
                                     />
@@ -291,6 +310,10 @@ const PatientRegistration: React.FC = () => {
                                                 error={!!errors.telefone}
                                                 helperText={errors.telefone?.message}
                                                 placeholder="(00) 00000-0000"
+                                                onChange={(e) => {
+                                                    const formattedValue = formatPhone(e.target.value);
+                                                    field.onChange(formattedValue);
+                                                }}
                                             />
                                         )}
                                     />
@@ -399,7 +422,7 @@ const PatientRegistration: React.FC = () => {
                                                 fullWidth
                                                 error={!!errors.endereco?.cep}
                                                 helperText={errors.endereco?.cep?.message}
-                                                placeholder="00000-000"
+                                                placeholder="Ex: 00000000"
                                                 onBlur={(e) => {
                                                     field.onBlur();
                                                     handleCEPBlur(e.target.value.replace(/\D/g, ''));

@@ -18,6 +18,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
 import { API_URL } from "../../config/api";
+import AppHeader from "../../Components/AppHeader/AppHeader";
 
 interface Alternativa {
   alternativa: string;
@@ -62,7 +63,7 @@ const HealthRiskForm: React.FC = () => {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Erro ao carregar perguntas');
         }
@@ -90,37 +91,34 @@ const HealthRiskForm: React.FC = () => {
           return total + peso;
         }, 0);
 
-      const payload = {
-        respostas: Object.entries(data)
-          .filter(([key]) => key.startsWith('pergunta_'))
-          .map(([perguntaIndex, valor]) => {
-            const [_, __, peso] = valor.split('_');
-            return {
-              perguntaIndex: parseInt(perguntaIndex.split('_')[1]),
-              peso: parseInt(peso)
-            };
-          }),
-        pesoTotal,
-        temperatura: parseFloat(data.temperatura),
-        pressaoArterial: data.pressaoArterial
-      };
+      //const payload = {
+      //  respostas: Object.entries(data)
+      //    .filter(([key]) => key.startsWith('pergunta_'))
+      //    .map(([perguntaIndex, valor]) => {
+      //      const [_, __, peso] = valor.split('_');
+      //      return {
+      //        perguntaIndex: parseInt(perguntaIndex.split('_')[1]),
+      //        peso: parseInt(peso)
+      //      };
+      //    }),
+      //  pesoTotal,
+      //  temperatura: parseFloat(data.temperatura),
+      //  pressaoArterial: data.pressaoArterial
+      //};
 
       if (pesoTotal < 50) {
-        console.log('pesototal é menor que 50')
         navigate('/antendimento-ia')
       }
 
       if (pesoTotal > 50) {
-        console.log('pesototal é maior que 50')
-        navigate('/medicalChat', { 
-          state: { 
+        navigate('/medicalChat', {
+          state: {
             pesoTotal,
             temperatura: parseFloat(data.temperatura),
             pressaoArterial: data.pressaoArterial
-          } 
+          }
         })
       }
-      console.log(payload);
 
     } catch (error) {
       alert('Erro ao enviar formulário. Tente novamente.');
@@ -148,17 +146,19 @@ const HealthRiskForm: React.FC = () => {
   }
 
   return (
+
     <Container maxWidth="md">
+      <AppHeader />
       <Box
         sx={{
           p: 4,
-          mt: 5,
+          mt: 9,
         }}
       >
-        <Typography variant="h5" align="left" gutterBottom sx={{mb: 3}}>
+        <Typography variant="h5" align="left" gutterBottom sx={{ mb: 3 }}>
           Formulário de Triagem de Risco de Saúde
         </Typography>
-        <Typography variant="body1" align="left" gutterBottom sx={{mb: 3}}>
+        <Typography variant="body1" align="left" gutterBottom sx={{ mb: 3 }}>
           Marque a opção que melhor descreve sua condição para cada item abaixo.
         </Typography>
 
@@ -221,11 +221,11 @@ const HealthRiskForm: React.FC = () => {
             {perguntas.map((pergunta, index) => (
               <Grid item xs={12} key={index}>
                 <FormControl component="fieldset">
-                  <FormLabel component="legend" sx={{mb: 2}}>
+                  <FormLabel component="legend" sx={{ mb: 2 }}>
                     {pergunta.pergunta}
                   </FormLabel>
                   {pergunta.observacao && (
-                    <Typography variant="body2" color="textSecondary" sx={{mb: 2}}>
+                    <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
                       {pergunta.observacao}
                     </Typography>
                   )}

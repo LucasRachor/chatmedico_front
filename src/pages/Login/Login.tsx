@@ -41,11 +41,15 @@ const Login: React.FC = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("role", decodedToken.role);
 
-      if (decodedToken.role === "medico" || decodedToken.role === "admin") {
+      if (decodedToken.role === "medico") {
         navigate("/patient");
       } else if (decodedToken.role === "paciente") {
         navigate("/patientHome");
-      } else {
+
+      } else if (decodedToken.role === "admin") {
+        navigate("/manage-professionals")
+      }
+      else {
         throw new Error("Tipo de usuário não reconhecido");
       }
 

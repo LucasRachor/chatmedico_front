@@ -1,4 +1,20 @@
-import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button } from "@mui/material";
+import {
+  Typography,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Button,
+  Chip,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl
+} from "@mui/material";
 import AppHeader from "../../Components/AppHeader/AppHeader";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -31,6 +47,7 @@ const PatientListScreen: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<string>("");
   const [sortField, setSortField] = useState<"horaChegada" | "pesoTotal" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [riskFilter, setRiskFilter] = useState<string>("all");
   const { token } = getAuthData();
 
   const handleSort = (field: "horaChegada" | "pesoTotal") => {
@@ -42,8 +59,13 @@ const PatientListScreen: React.FC = () => {
     }
   };
 
-  const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
-  const userId = payload?.sub;
+  const getRiskChip = (pesoTotal: number) => {
+    if (pesoTotal >= 9) return { label: "Vermelho", color: '#d32f2f', textColor: '#fff' };
+    if (pesoTotal >= 7) return { label: "Laranja", color: '#f57c00', textColor: '#fff' };
+    if (pesoTotal >= 5) return { label: "Amarelo", color: '#fbc02d', textColor: '#000' };
+    if (pesoTotal >= 3) return { label: "Verde", color: '#388e3c', textColor: '#fff' };
+    return { label: "Azul", color: '#1976d2', textColor: '#fff' };
+  };
 
   const sortedPatients = [...queuePatients].sort((a, b) => {
     if (!sortField) return 0;
@@ -63,36 +85,43 @@ const PatientListScreen: React.FC = () => {
     }
   });
 
+  const filteredPatients = sortedPatients.filter((p) => {
+    const risk = parseInt(p.pesoTotal);
+    switch (riskFilter) {
+      case "vermelho": return risk >= 9;
+      case "laranja": return risk >= 7 && risk < 9;
+      case "amarelo": return risk >= 5 && risk < 7;
+      case "verde": return risk >= 3 && risk < 5;
+      case "azul": return risk < 3;
+      default: return true;
+    }
+  });
+
+  const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
+  const userId = payload?.sub;
+
   useEffect(() => {
     if (!token) return;
 
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const doctorId = payload.sub;
+    const doctorId = userId;
 
     const fetchPacienteData = async (userId: string) => {
       if (!token || !userId) return;
       try {
         const response = await fetch(`${API_URL}/users/find/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-          throw new Error('Erro ao buscar dados do paciente');
-        }
-
+        if (!response.ok) throw new Error('Erro ao buscar dados do paciente');
         const userName = await response.json();
-        setUserName(userName)
+        setUserName(userName);
       } catch (error) {
         console.error('Erro ao buscar dados do paciente:', error);
       }
     };
 
-    fetchPacienteData(userId)
+    fetchPacienteData(userId);
 
     socket.emit("doctorConnected", { doctorId });
-
     socket.emit("getQueue");
 
     socket.on("queueList", (data: QueueData) => {
@@ -114,9 +143,7 @@ const PatientListScreen: React.FC = () => {
   const handleAcceptPatient = (patientId: string) => {
     if (!token) return;
 
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const medicoId = payload.sub;
-
+    const medicoId = userId;
     const chatRoom = `chat-${patientId}-${medicoId}`;
 
     socket.emit("acceptPatient", {
@@ -144,14 +171,45 @@ const PatientListScreen: React.FC = () => {
         Criar Formulário
       </Button>
 
-      {/* Lista de Pacientes na Fila */}
       <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6">Pacientes na Fila</Typography>
-          <Typography variant="caption" color="text.secondary">
-            Última atualização: {lastUpdate}
-          </Typography>
+          <Box>
+            <Typography variant="h6">
+              Pacientes na Fila ({filteredPatients.length})
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+              <Chip label="Vermelho: Emergência" sx={{ backgroundColor: '#d32f2f', color: '#fff' }} size="small" />
+              <Chip label="Laranja: Muito urgente" sx={{ backgroundColor: '#f57c00', color: '#fff' }} size="small" />
+              <Chip label="Amarelo: Urgente" sx={{ backgroundColor: '#fbc02d', color: '#000' }} size="small" />
+              <Chip label="Verde: Pouco urgente" sx={{ backgroundColor: '#388e3c', color: '#fff' }} size="small" />
+              <Chip label="Azul: Não urgente" sx={{ backgroundColor: '#1976d2', color: '#fff' }} size="small" />
+            </Box>
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <FormControl size="small">
+              <InputLabel>Filtrar risco</InputLabel>
+              <Select
+                value={riskFilter}
+                label="Filtrar risco"
+                onChange={(e) => setRiskFilter(e.target.value)}
+                sx={{ width: 170 }}
+              >
+                <MenuItem value="all">Todos</MenuItem>
+                <MenuItem value="vermelho">Emergência</MenuItem>
+                <MenuItem value="laranja">Muito urgente</MenuItem>
+                <MenuItem value="amarelo">Urgente</MenuItem>
+                <MenuItem value="verde">Pouco urgente</MenuItem>
+                <MenuItem value="azul">Não urgente</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Typography variant="caption" color="text.secondary">
+              Última atualização: {lastUpdate}
+            </Typography>
+          </Box>
         </Box>
+
         <TableContainer>
           <Table>
             <TableHead>
@@ -177,28 +235,36 @@ const PatientListScreen: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortedPatients.map((patient) => (
-                <TableRow key={patient.pacienteId}>
-                  <TableCell>{patient.nomeCompleto || "Paciente sem nome"}</TableCell>
-                  <TableCell>{patient.idade} anos</TableCell>
-                  <TableCell>{patient.horaChegada}</TableCell>
-                  <TableCell>{patient.temperatura}°C</TableCell>
-                  <TableCell>{patient.pressaoArterial} mmHg</TableCell>
-                  <TableCell>{patient.genero}</TableCell>
-                  <TableCell>{patient.pesoTotal}</TableCell>
-
-                  <TableCell>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      onClick={() => handleAcceptPatient(patient.pacienteId)}
-                    >
-                      Atender
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filteredPatients.map((patient) => {
+                const risk = getRiskChip(parseInt(patient.pesoTotal));
+                return (
+                  <TableRow key={patient.pacienteId}>
+                    <TableCell>{patient.nomeCompleto || "Paciente sem nome"}</TableCell>
+                    <TableCell>{patient.idade} anos</TableCell>
+                    <TableCell>{patient.horaChegada}</TableCell>
+                    <TableCell>{patient.temperatura}°C</TableCell>
+                    <TableCell>{patient.pressaoArterial} mmHg</TableCell>
+                    <TableCell>{patient.genero}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={`${risk.label} (${patient.pesoTotal})`}
+                        sx={{ backgroundColor: risk.color, color: risk.textColor }}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={() => handleAcceptPatient(patient.pacienteId)}
+                      >
+                        Atender
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
@@ -207,4 +273,4 @@ const PatientListScreen: React.FC = () => {
   );
 };
 
-export default PatientListScreen; 
+export default PatientListScreen;

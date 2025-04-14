@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography, CircularProgress, Button, TextField, Paper, List, ListItem, } from "@mui/material";
-import { io, Socket } from "socket.io-client";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { io } from "socket.io-client";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
 import { API_URL } from "../../config/api";
 

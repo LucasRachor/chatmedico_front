@@ -19,7 +19,6 @@ import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
 import { API_URL } from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
-import PatientHome from "../PatientHome";
 
 interface Alternativa {
   alternativa: string;

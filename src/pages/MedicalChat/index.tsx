@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography, CircularProgress, Button, TextField, Paper, List, ListItem, } from "@mui/material";
-import { io, Socket } from "socket.io-client";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
 import { API_URL } from "../../config/api";
-
-const socket = io(API_URL.replace('/api/v1', ''));
+import { useSocket } from "../../utils/SocketContext";
 
 interface LocationState {
   sala?: string;
@@ -37,6 +35,11 @@ const MedicalChat: React.FC = () => {
   const state = location.state as LocationState;
   const initialMessageSent = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const socket = useSocket();;
+  if (!socket) {
+    throw new Error("Socket not initialized");
+  }
 
   const fetchPacienteData = async (pacienteId: string) => {
     try {
@@ -109,6 +112,11 @@ const MedicalChat: React.FC = () => {
       setChatStarted(true);
       setIsWaiting(false);
 
+      const pacienteId = userRole === "paciente" ? userId : data.pacienteId;
+      if (pacienteId) {
+        socket.emit("leaveQueue", { pacienteId });
+      }
+
       // Entra na sala do chat
       socket.emit("joinRoom", { sala: chatRoom });
     });
@@ -117,7 +125,7 @@ const MedicalChat: React.FC = () => {
     socket.on("message", (data) => {
       // Não adiciona a mensagem se for a mensagem inicial e já tiver sido enviada
       if (!(data.mensagem === state?.mensagemInicial && initialMessageSent.current)) {
-        setMessages((prev) => [...prev, { sender: data.remetenteId, text: data.mensagem}]);
+        setMessages((prev) => [...prev, { sender: data.remetenteId, text: data.mensagem }]);
       }
     });
 
@@ -129,7 +137,7 @@ const MedicalChat: React.FC = () => {
         socket.emit("leaveQueue", { pacienteId });
       }
 
-      if (userRole === "medico") {
+      if (userRole === "medico" || userRole === "enfermeiro") {
         navigate("/patient");
       } else {
         navigate("/patientHome");
@@ -153,11 +161,11 @@ const MedicalChat: React.FC = () => {
   }, [token, navigate, state, sala]);
 
   useEffect(() => {
-    if (!token || !pacientAge || !pacientGender) return;
+    if (!token || !pacientAge || !pacientGender || !socket) return;
 
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = payload.sub;
-    
+
     socket.emit("enterQueue", {
       pacienteId: userId,
       nomeCompleto: pacientName,
@@ -221,9 +229,23 @@ const MedicalChat: React.FC = () => {
 
   const getSenderName = (senderId: string) => {
     if (!token) return "Desconhecido";
+
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return senderId === payload.sub ? "Você" : (payload.role === "medico" ? "Paciente" : "Médico");
+
+    if (senderId === payload.sub) return "Você";
+
+    switch (payload.role) {
+      case "medico":
+        return "Paciente";
+      case "enfermeiro":
+        return "Paciente";
+      case "paciente":
+        return "Profissional";
+      default:
+        return "Desconhecido";
+    }
   };
+
 
   const isCurrentUser = (senderId: string) => {
     if (!token) return false;
@@ -242,7 +264,7 @@ const MedicalChat: React.FC = () => {
     socket.emit("endChat", {
       sala: sala,
       pacienteId: userRole === "paciente" ? userId : state?.remetenteId,
-      medicoId: userRole === "medico" ? userId : state?.remetenteId
+      medicoId: userRole === "medico" || userRole === "enfermeiro" ? userId : state?.remetenteId
     });
 
     // Remove o paciente da fila
@@ -252,7 +274,7 @@ const MedicalChat: React.FC = () => {
     }
 
     // Redireciona baseado no papel do usuário
-    if (userRole === "medico") {
+    if (userRole === "medico" || userRole === "enfermeiro") {
       navigate("/patient");
     } else {
       navigate("/patientHome");

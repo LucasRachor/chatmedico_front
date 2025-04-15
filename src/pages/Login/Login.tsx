@@ -48,6 +48,9 @@ const Login: React.FC = () => {
 
       } else if (decodedToken.role === "admin") {
         navigate("/manage-professionals")
+        
+      } else if (decodedToken.role === "enfermeiro") {
+        navigate("/patient")
       }
       else {
         throw new Error("Tipo de usuário não reconhecido");

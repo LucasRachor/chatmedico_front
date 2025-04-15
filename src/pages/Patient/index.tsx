@@ -2,11 +2,9 @@ import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, Ta
 import AppHeader from "../../Components/AppHeader/AppHeader";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
 import { getAuthData } from "../../utils/auth";
 import { API_URL } from "../../config/api";
-
-const socket = io(API_URL.replace('/api/v1', ''));
+import { useSocket } from "../../utils/SocketContext";
 
 interface QueuePatient {
   pacienteId: string;
@@ -32,6 +30,11 @@ const PatientListScreen: React.FC = () => {
   const [sortField, setSortField] = useState<"horaChegada" | "pesoTotal" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { token } = getAuthData();
+
+  const socket = useSocket();;
+  if (!socket) {
+    throw new Error("Socket not initialized");
+  }
 
   const handleSort = (field: "horaChegada" | "pesoTotal") => {
     if (sortField === field) {
@@ -101,6 +104,7 @@ const PatientListScreen: React.FC = () => {
     });
 
     socket.on("updateQueue", (queue: QueuePatient[]) => {
+      console.log("📥 Fila atualizada recebida:", queue); // <--- Adicione isso
       setQueuePatients(queue);
       setLastUpdate(new Date().toLocaleString('pt-BR'));
     });
@@ -124,8 +128,6 @@ const PatientListScreen: React.FC = () => {
       medicoId: medicoId,
       sala: chatRoom
     });
-
-    setQueuePatients(prev => prev.filter(p => p.pacienteId !== patientId));
 
     navigate("/medicalChat", {
       state: {

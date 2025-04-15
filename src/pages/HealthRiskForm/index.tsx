@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
 import { API_URL } from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
+import axios from "axios";
 
 interface Alternativa {
   alternativa: string;
@@ -80,31 +81,61 @@ const HealthRiskForm: React.FC = () => {
     fetchPerguntas();
   }, [token, navigate]);
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (formData: FormData) => {
     if (!token) return;
 
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
     try {
-      const pesoTotal = Object.entries(data)
+      const pesoTotal = Object.entries(formData)
         .filter(([key]) => key.startsWith('pergunta_'))
         .reduce((total, [_, valor]) => {
           const peso = parseInt(valor.split('_')[2] || '0');
           return total + peso;
         }, 0);
 
-      //const payload = {
-      //  respostas: Object.entries(data)
-      //    .filter(([key]) => key.startsWith('pergunta_'))
-      //    .map(([perguntaIndex, valor]) => {
-      //      const [_, __, peso] = valor.split('_');
-      //      return {
-      //        perguntaIndex: parseInt(perguntaIndex.split('_')[1]),
-      //        peso: parseInt(peso)
-      //      };
-      //    }),
-      //  pesoTotal,
-      //  temperatura: parseFloat(data.temperatura),
-      //  pressaoArterial: data.pressaoArterial
-      //};
+
+      let tipoAtendimento = '';
+
+      if (pesoTotal < 50) {
+        tipoAtendimento = 'IA'
+      }
+
+      if (pesoTotal > 50) {
+        tipoAtendimento = 'Profissional'
+      }
+
+      const data = {
+        tipoAtendimento,
+        pacienteId: userId,
+        temperatura: formData.temperatura,
+        pressaoArterial: formData.pressaoArterial,
+        respostas: Object.entries(formData)
+          .filter(([key]) => key.startsWith('pergunta_'))
+          .map(([perguntaKey, valor]) => {
+            const [indexStr, altIndexStr, _pesoStr] = valor.split('_');
+            const perguntaIndex = parseInt(indexStr);
+            const altIndex = parseInt(altIndexStr);
+            const perguntaSelecionada = perguntas[perguntaIndex];
+            const alternativaSelecionada = perguntaSelecionada?.alternativas[altIndex];
+
+            return {
+              pergunta: perguntaSelecionada?.pergunta,
+              resposta: alternativaSelecionada?.alternativa
+            };
+          }),
+      };
+      console.log(data)
+
+      await fetch(`${API_URL}/atendimentos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data),
+      });
 
       if (pesoTotal < 50) {
         navigate('/antendimento-ia')
@@ -114,13 +145,14 @@ const HealthRiskForm: React.FC = () => {
         navigate('/medicalChat', {
           state: {
             pesoTotal,
-            temperatura: parseFloat(data.temperatura),
-            pressaoArterial: data.pressaoArterial
+            temperatura: parseFloat(formData.temperatura),
+            pressaoArterial: formData.pressaoArterial
           }
         })
       }
 
     } catch (error) {
+      console.log(error)
       alert('Erro ao enviar formulário. Tente novamente.');
     }
   };
@@ -190,6 +222,7 @@ const HealthRiskForm: React.FC = () => {
                 )}
               />
             </Grid>
+
 
             <Grid item xs={12} md={6}>
               <Controller

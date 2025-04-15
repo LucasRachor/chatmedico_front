@@ -30,6 +30,7 @@ import { KeyboardArrowDown, KeyboardArrowUp, Add, Edit, Delete } from '@mui/icon
 import axios from 'axios';
 import { getAuthData } from '../../utils/auth';
 import { API_URL } from "../../config/api";
+import AppHeader from "../../Components/AppHeader/AppHeader";
 
 interface Professional {
   id: string;
@@ -216,7 +217,8 @@ const ManageProfessionals: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <AppHeader/>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, mt: 15 }}>
         <Typography variant="h4" component="h1">
           Gerenciamento Equipe Médica
         </Typography>

@@ -1,9 +1,7 @@
-import { Box, Typography, Button } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Box, Typography } from "@mui/material";
 import logo from "../../assets/logo.svg";
 
 const NotFound = () => {
-  const navigate = useNavigate();
 
   return (
     <Box

@@ -10,12 +10,18 @@ const PatientHome: React.FC = () => {
   return (
     <Container maxWidth="md">
       <AppHeader />
-      <Button color="primary" variant="contained" onClick={() => navigate("/manageQuestions")} sx={{ width: 200, mb: 3, ml: 1 }}>
+      <Button
+        color="primary"
+        variant="contained"
+        onClick={() => navigate("/manageQuestions")}
+        sx={{ width: 200, mb: 3, ml: 1 }}
+      >
         Criar Formulário
       </Button>
       <Box sx={{ mt: 5, textAlign: "center" }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Bem-vindo à Plataforma de Atendimento em Saúde Digital
+          Bem-vindo à Plataforma Enfermagem, Monitoramento e Atendimento
+          Inteligente e-MAI
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Escolha uma opção abaixo para continuar.

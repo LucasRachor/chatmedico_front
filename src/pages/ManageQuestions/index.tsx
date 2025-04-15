@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import {
   Box,
@@ -24,6 +24,7 @@ import {
 import { Add, Delete, Edit } from "@mui/icons-material";
 import axios from "axios";
 import { API_URL } from "../../config/api";
+import AppHeader from "../../Components/AppHeader/AppHeader";
 
 type Alternative = {
   alternativa: string;
@@ -46,19 +47,30 @@ const RiskAssessment: React.FC = () => {
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
   const [riskScore, setRiskScore] = useState<number | null>(null);
 
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(`${API_URL}/questionario`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setQuestions(response.data);
+      } catch (err) {
+        console.error("Erro ao buscar perguntas:", err);
+      }
+    };
+    fetchQuestions();
+  }, []);
+
   const onSubmit = async (data: QuestionForm) => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Token não encontrado");
-      }
+      if (!token) throw new Error("Token não encontrado");
 
       await axios.post(`${API_URL}/questionario`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (editingIndex !== null) {
         const updatedQuestions = [...questions];
         updatedQuestions[editingIndex] = data;
@@ -82,8 +94,19 @@ const RiskAssessment: React.FC = () => {
     setEditingIndex(index);
   };
 
-  const handleDelete = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index));
+  const handleDelete = async (index: number) => {
+    if (confirm("Deseja realmente excluir esta pergunta?")) {
+      try {
+        const token = localStorage.getItem("token");
+        const questionId = questions[index];
+        await axios.delete(`${API_URL}/questionario/${questionId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setQuestions(questions.filter((_, i) => i !== index));
+      } catch (error) {
+        console.error("Erro ao excluir pergunta:", error);
+      }
+    }
   };
 
   const handleAnswerChange = (questionIndex: number, alternativeWeight: number) => {
@@ -97,14 +120,8 @@ const RiskAssessment: React.FC = () => {
 
   return (
     <Container maxWidth="md">
-      <Box sx={{ 
-        bgcolor: "#F7FAFC", 
-        p: { xs: 2, sm: 4 }, 
-        borderRadius: 2, 
-        boxShadow: 2, 
-        mt: 5,
-        mb: 5 
-      }}>
+      <AppHeader />
+      <Box sx={{ bgcolor: "#F7FAFC", p: { xs: 2, sm: 4 }, borderRadius: 2, boxShadow: 2, mt: 15, mb: 5 }}>
         <Typography variant="h5" align="center" gutterBottom sx={{ mb: 4 }}>
           Criar e Avaliar Formulário de Risco
         </Typography>
@@ -112,36 +129,19 @@ const RiskAssessment: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Controller
-                name="pergunta"
-                control={control}
-                defaultValue=""
-                render={({ field }) => (
-                  <TextField {...field} fullWidth label="Pergunta" variant="outlined" />
-                )}
-              />
+              <Controller name="pergunta" control={control} defaultValue="" render={({ field }) => (
+                <TextField {...field} fullWidth label="Pergunta" variant="outlined" />
+              )} />
             </Grid>
-
             <Grid item xs={6}>
-              <Controller
-                name="peso"
-                control={control}
-                defaultValue={0}
-                render={({ field }) => (
-                  <TextField {...field} fullWidth label="Peso da Pergunta" type="number" variant="outlined" />
-                )}
-              />
+              <Controller name="peso" control={control} defaultValue={0} render={({ field }) => (
+                <TextField {...field} fullWidth label="Peso da Pergunta" type="number" variant="outlined" />
+              )} />
             </Grid>
-
             <Grid item xs={12}>
-              <Controller
-                name="observacao"
-                control={control}
-                defaultValue=""
-                render={({ field }) => (
-                  <TextField {...field} fullWidth label="Observação" variant="outlined" />
-                )}
-              />
+              <Controller name="observacao" control={control} defaultValue="" render={({ field }) => (
+                <TextField {...field} fullWidth label="Observação" variant="outlined" />
+              )} />
             </Grid>
 
             {/* Alternativas de Resposta */}
@@ -176,12 +176,7 @@ const RiskAssessment: React.FC = () => {
                   </Grid>
                 </Grid>
               ))}
-              <Button 
-                variant="outlined" 
-                startIcon={<Add />} 
-                onClick={() => append({ alternativa: "", peso: 0 })}
-                sx={{ mt: 2 }}
-              >
+              <Button variant="outlined" startIcon={<Add />} onClick={() => append({ alternativa: "", peso: 0 })} sx={{ mt: 2 }}>
                 Adicionar Alternativa
               </Button>
             </Grid>
@@ -207,13 +202,13 @@ const RiskAssessment: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {questions.map((question, index) => (
+              {[...questions].reverse().map((question, index) => (
                 <TableRow key={index}>
                   <TableCell>{question.pergunta}</TableCell>
                   <TableCell>{question.peso}</TableCell>
                   <TableCell>
                     {question.alternativas.map((alt, i) => (
-                      <Box key={i} sx={{ mb: 1 }}>{`${alt.alternativa} (Peso: ${alt.peso})`}</Box>
+                      <Typography key={i} variant="body2">{`${alt.alternativa} (Peso: ${alt.peso})`}</Typography>
                     ))}
                   </TableCell>
                   <TableCell>{question.observacao}</TableCell>
@@ -232,13 +227,7 @@ const RiskAssessment: React.FC = () => {
         </Box>
 
         {/* Formulário do paciente */}
-        <Button 
-          variant="contained" 
-          color="secondary" 
-          fullWidth 
-          onClick={() => setOpenDialog(true)}
-          sx={{ mb: 3 }}
-        >
+        <Button variant="contained" color="primary" fullWidth onClick={() => setOpenDialog(true)} sx={{ mb: 3 }}>
           Preencher Formulário
         </Button>
 
@@ -250,13 +239,7 @@ const RiskAssessment: React.FC = () => {
                 <Typography variant="subtitle1" gutterBottom>{question.pergunta}</Typography>
                 <RadioGroup onChange={(e) => handleAnswerChange(index, Number(e.target.value))}>
                   {question.alternativas.map((alt, i) => (
-                    <FormControlLabel 
-                      key={i} 
-                      value={alt.peso} 
-                      control={<Radio />} 
-                      label={alt.alternativa} 
-                      sx={{ mb: 1 }}
-                    />
+                    <FormControlLabel key={i} value={alt.peso} control={<Radio />} label={alt.alternativa} sx={{ mb: 1 }} />
                   ))}
                 </RadioGroup>
               </Box>
@@ -270,16 +253,7 @@ const RiskAssessment: React.FC = () => {
         </Dialog>
 
         {riskScore !== null && (
-          <Typography 
-            align="center" 
-            variant="h6" 
-            sx={{ 
-              mt: 3, 
-              p: 2, 
-              bgcolor: riskScore > 50 ? '#ffebee' : '#e8f5e9',
-              borderRadius: 2
-            }}
-          >
+          <Typography align="center" variant="h6" sx={{ mt: 3, p: 2, bgcolor: riskScore > 50 ? '#ffebee' : '#e8f5e9', borderRadius: 2 }}>
             Risco Total: {riskScore}
           </Typography>
         )}

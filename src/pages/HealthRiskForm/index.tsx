@@ -13,12 +13,13 @@ import {
   Grid,
   CircularProgress,
   Alert,
-  TextField,
+  TextField
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
 import { API_URL } from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
+import axios from "axios";
 
 interface Alternativa {
   alternativa: string;
@@ -38,15 +39,11 @@ interface FormData {
 }
 
 const HealthRiskForm: React.FC = () => {
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({
+  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     defaultValues: {
-      temperatura: "",
-      pressaoArterial: "",
-    },
+      temperatura: '',
+      pressaoArterial: ''
+    }
   });
   const navigate = useNavigate();
   const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
@@ -57,25 +54,25 @@ const HealthRiskForm: React.FC = () => {
   useEffect(() => {
     const fetchPerguntas = async () => {
       if (!token) {
-        navigate("/");
+        navigate('/');
         return;
       }
 
       try {
         const response = await fetch(`${API_URL}/questionario`, {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            'Authorization': `Bearer ${token}`
+          }
         });
 
         if (!response.ok) {
-          throw new Error("Erro ao carregar perguntas");
+          throw new Error('Erro ao carregar perguntas');
         }
 
         const data = await response.json();
         setPerguntas(data);
       } catch (error) {
-        setError("Erro ao carregar o formulário. Por favor, tente novamente.");
+        setError('Erro ao carregar o formulário. Por favor, tente novamente.');
       } finally {
         setLoading(false);
       }
@@ -84,59 +81,86 @@ const HealthRiskForm: React.FC = () => {
     fetchPerguntas();
   }, [token, navigate]);
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (formData: FormData) => {
     if (!token) return;
 
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
     try {
-      const pesoTotal = Object.entries(data)
-        .filter(([key]) => key.startsWith("pergunta_"))
+      const pesoTotal = Object.entries(formData)
+        .filter(([key]) => key.startsWith('pergunta_'))
         .reduce((total, [_, valor]) => {
-          const peso = parseInt(valor.split("_")[2] || "0");
+          const peso = parseInt(valor.split('_')[2] || '0');
           return total + peso;
         }, 0);
 
-      //const payload = {
-      //  respostas: Object.entries(data)
-      //    .filter(([key]) => key.startsWith('pergunta_'))
-      //    .map(([perguntaIndex, valor]) => {
-      //      const [_, __, peso] = valor.split('_');
-      //      return {
-      //        perguntaIndex: parseInt(perguntaIndex.split('_')[1]),
-      //        peso: parseInt(peso)
-      //      };
-      //    }),
-      //  pesoTotal,
-      //  temperatura: parseFloat(data.temperatura),
-      //  pressaoArterial: data.pressaoArterial
-      //};
+
+      let tipoAtendimento = '';
 
       if (pesoTotal < 50) {
-        navigate("/antendimento-ia");
+        tipoAtendimento = 'IA'
       }
 
       if (pesoTotal > 50) {
-        navigate("/medicalChat", {
+        tipoAtendimento = 'Profissional'
+      }
+
+      const data = {
+        tipoAtendimento,
+        pacienteId: userId,
+        temperatura: formData.temperatura,
+        pressaoArterial: formData.pressaoArterial,
+        respostas: Object.entries(formData)
+          .filter(([key]) => key.startsWith('pergunta_'))
+          .map(([perguntaKey, valor]) => {
+            const [indexStr, altIndexStr, _pesoStr] = valor.split('_');
+            const perguntaIndex = parseInt(indexStr);
+            const altIndex = parseInt(altIndexStr);
+            const perguntaSelecionada = perguntas[perguntaIndex];
+            const alternativaSelecionada = perguntaSelecionada?.alternativas[altIndex];
+
+            return {
+              pergunta: perguntaSelecionada?.pergunta,
+              resposta: alternativaSelecionada?.alternativa
+            };
+          }),
+      };
+      console.log(data)
+
+      await fetch(`${API_URL}/atendimentos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (pesoTotal < 50) {
+        navigate('/antendimento-ia')
+      }
+
+      if (pesoTotal > 50) {
+        navigate('/medicalChat', {
           state: {
             pesoTotal,
-            temperatura: parseFloat(data.temperatura),
-            pressaoArterial: data.pressaoArterial,
-          },
-        });
+            temperatura: parseFloat(formData.temperatura),
+            pressaoArterial: formData.pressaoArterial
+          }
+        })
       }
+
     } catch (error) {
-      alert("Erro ao enviar formulário. Tente novamente.");
+      console.log(error)
+      alert('Erro ao enviar formulário. Tente novamente.');
     }
   };
 
   if (loading) {
     return (
       <Container maxWidth="md">
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="100vh"
-        >
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
           <CircularProgress />
         </Box>
       </Container>
@@ -146,12 +170,7 @@ const HealthRiskForm: React.FC = () => {
   if (error) {
     return (
       <Container maxWidth="md">
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="100vh"
-        >
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
           <Alert severity="error">{error}</Alert>
         </Box>
       </Container>
@@ -159,6 +178,7 @@ const HealthRiskForm: React.FC = () => {
   }
 
   return (
+
     <Container maxWidth="md">
       <AppHeader />
       <Box
@@ -181,11 +201,11 @@ const HealthRiskForm: React.FC = () => {
                 name="temperatura"
                 control={control}
                 rules={{
-                  required: "Temperatura é obrigatória",
+                  required: 'Temperatura é obrigatória',
                   pattern: {
                     value: /^[0-9]{1,2}([,.][0-9]{1})?$/,
-                    message: "Digite uma temperatura válida (ex: 36.5)",
-                  },
+                    message: 'Digite uma temperatura válida (ex: 36.5)'
+                  }
                 }}
                 render={({ field }) => (
                   <TextField
@@ -195,24 +215,25 @@ const HealthRiskForm: React.FC = () => {
                     error={!!errors.temperatura}
                     helperText={errors.temperatura?.message}
                     inputProps={{
-                      inputMode: "decimal",
-                      pattern: "[0-9]{1,2}([,.][0-9]{1})?",
+                      inputMode: 'decimal',
+                      pattern: '[0-9]{1,2}([,.][0-9]{1})?'
                     }}
                   />
                 )}
               />
             </Grid>
 
+
             <Grid item xs={12} md={6}>
               <Controller
                 name="pressaoArterial"
                 control={control}
                 rules={{
-                  required: "Pressão arterial é obrigatória",
+                  required: 'Pressão arterial é obrigatória',
                   pattern: {
                     value: /^[0-9]{2,3}\/[0-9]{2,3}$/,
-                    message: "Digite a pressão no formato correto (ex: 120/80)",
-                  },
+                    message: 'Digite a pressão no formato correto (ex: 120/80)'
+                  }
                 }}
                 render={({ field }) => (
                   <TextField
@@ -222,8 +243,8 @@ const HealthRiskForm: React.FC = () => {
                     error={!!errors.pressaoArterial}
                     helperText={errors.pressaoArterial?.message}
                     inputProps={{
-                      inputMode: "numeric",
-                      pattern: "[0-9]{2,3}/[0-9]{2,3}",
+                      inputMode: 'numeric',
+                      pattern: '[0-9]{2,3}/[0-9]{2,3}'
                     }}
                   />
                 )}
@@ -237,11 +258,7 @@ const HealthRiskForm: React.FC = () => {
                     {pergunta.pergunta}
                   </FormLabel>
                   {pergunta.observacao && (
-                    <Typography
-                      variant="body2"
-                      color="textSecondary"
-                      sx={{ mb: 2 }}
-                    >
+                    <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
                       {pergunta.observacao}
                     </Typography>
                   )}
@@ -249,7 +266,7 @@ const HealthRiskForm: React.FC = () => {
                     name={`pergunta_${index}`}
                     control={control}
                     defaultValue=""
-                    rules={{ required: "Por favor, selecione uma opção" }}
+                    rules={{ required: 'Por favor, selecione uma opção' }}
                     render={({ field: { value, onChange, ...field } }) => (
                       <RadioGroup
                         value={value}
@@ -271,7 +288,7 @@ const HealthRiskForm: React.FC = () => {
               </Grid>
             ))}
 
-            <Box sx={{ display: "flex", gap: 2, width: "100%", mt: 3 }}>
+            <Grid item xs={12}>
               <Button
                 type="submit"
                 variant="contained"
@@ -281,17 +298,7 @@ const HealthRiskForm: React.FC = () => {
               >
                 Enviar Formulário
               </Button>
-              <Button
-                onClick={() => navigate("/patientHome")}
-                type="submit"
-                variant="outlined"
-                color="primary"
-                fullWidth
-                size="large"
-              >
-                Cancelar
-              </Button>
-            </Box>
+            </Grid>
           </Grid>
         </form>
       </Box>

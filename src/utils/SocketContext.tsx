@@ -9,13 +9,23 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [_isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // Determina se estamos em produção (HTTPS)
+    const isProduction = window.location.protocol === 'https:';
+    
+    // Ajusta a URL do socket baseado no ambiente
+    const socketUrl = isProduction 
+      ? API_URL.replace('http://', 'https://').replace('/api/v1', '')
+      : API_URL.replace('/api/v1', '');
+
     // Cria uma nova instância do socket
-    socketRef.current = io(API_URL.replace("/api/v1", ""), {
+    socketRef.current = io(socketUrl, {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
+      secure: isProduction, // Força HTTPS em produção
+      transports: ['websocket', 'polling'],
     });
 
     // Eventos do socket

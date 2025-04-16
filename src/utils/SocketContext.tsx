@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { API_URL } from "../config/api";
 
@@ -6,14 +6,52 @@ const SocketContext = createContext<Socket | null>(null);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
-
-  if (!socketRef.current) {
-    socketRef.current = io(API_URL.replace("/api/v1", ""));
-  }
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // Cria uma nova instância do socket
+    socketRef.current = io(API_URL.replace("/api/v1", ""), {
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+    });
+
+    // Eventos do socket
+    socketRef.current.on("connect", () => {
+      console.log("🔌 Socket conectado");
+      setIsConnected(true);
+    });
+
+    socketRef.current.on("disconnect", () => {
+      console.log("🔌 Socket desconectado");
+      setIsConnected(false);
+    });
+
+    socketRef.current.on("reconnect", (attemptNumber) => {
+      console.log(`🔌 Socket reconectado após ${attemptNumber} tentativas`);
+      setIsConnected(true);
+    });
+
+    socketRef.current.on("reconnect_error", (error) => {
+      console.error("❌ Erro na reconexão:", error);
+    });
+
+    socketRef.current.on("reconnect_failed", () => {
+      console.error("❌ Falha na reconexão após todas as tentativas");
+    });
+
+    // Limpeza ao desmontar
     return () => {
-      socketRef.current?.disconnect();
+      if (socketRef.current) {
+        socketRef.current.off("connect");
+        socketRef.current.off("disconnect");
+        socketRef.current.off("reconnect");
+        socketRef.current.off("reconnect_error");
+        socketRef.current.off("reconnect_failed");
+        socketRef.current.disconnect();
+      }
     };
   }, []);
 
@@ -25,5 +63,9 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useSocket = () => {
-  return useContext(SocketContext);
+  const socket = useContext(SocketContext);
+  if (!socket) {
+    throw new Error("useSocket deve ser usado dentro de um SocketProvider");
+  }
+  return socket;
 };

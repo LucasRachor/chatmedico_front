@@ -9,17 +9,12 @@ import { useSocket } from "../../utils/SocketContext";
 interface QueuePatient {
   pacienteId: string;
   nomeCompleto: string;
-  horaChegada: string;
   idade: string;
   genero: string;
   pesoTotal: string;
   temperatura: string;
   pressaoArterial: string;
-}
-
-interface QueueData {
-  queue: QueuePatient[];
-  timestamp: string;
+  horaChegada: string;
 }
 
 const PatientListScreen: React.FC = () => {
@@ -30,8 +25,9 @@ const PatientListScreen: React.FC = () => {
   const [sortField, setSortField] = useState<"horaChegada" | "pesoTotal" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { token } = getAuthData();
+  let lastQueueString = "";
 
-  const socket = useSocket();;
+  const socket = useSocket();
   if (!socket) {
     throw new Error("Socket not initialized");
   }
@@ -48,7 +44,7 @@ const PatientListScreen: React.FC = () => {
   const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
   const userId = payload?.sub;
 
-  const sortedPatients = [...queuePatients].sort((a, b) => {
+  const sortedPatients: QueuePatient[] = queuePatients ? [...queuePatients].sort((a: QueuePatient, b: QueuePatient) => {
     if (!sortField) return 0;
 
     if (sortField === "horaChegada") {
@@ -64,7 +60,7 @@ const PatientListScreen: React.FC = () => {
       const pesoB = parseInt(b.pesoTotal);
       return sortDirection === "asc" ? pesoA - pesoB : pesoB - pesoA;
     }
-  });
+  }) : [];
 
   useEffect(() => {
     if (!token) return;
@@ -94,26 +90,57 @@ const PatientListScreen: React.FC = () => {
 
     fetchPacienteData(userId)
 
-    socket.emit("doctorConnected", { doctorId });
-
     socket.emit("getQueue");
 
-    socket.on("queueList", (data: QueueData) => {
-      setQueuePatients(data.queue);
-      setLastUpdate(new Date(data.timestamp).toLocaleString('pt-BR'));
+    socket.on("updateQueue", (queue: QueuePatient[]) => {
+      console.log("📥 Fila atualizada recebida:", queue);
+      
+      if (queue.length === 0 && socket.recovered) {
+        console.log("🔄 Ignorando fila vazia de reconexão");
+        return;
+      }
+
+      const currentQueueStr = JSON.stringify(queuePatients);
+      const newQueueStr = JSON.stringify(queue);
+      
+      if (currentQueueStr !== newQueueStr) {
+        console.log("🔄 Atualizando fila com novas mudanças");
+        setQueuePatients(queue);
+        setLastUpdate(new Date().toLocaleString('pt-BR'));
+      } else {
+        console.log("🔄 Fila não mudou, ignorando atualização");
+      }
     });
 
-    socket.on("updateQueue", (queue: QueuePatient[]) => {
-      console.log("📥 Fila atualizada recebida:", queue); // <--- Adicione isso
-      setQueuePatients(queue);
+    socket.on("acceptPatient", (data: { medicoId: string; sala: string }) => {
+      console.log("✅ Paciente aceito:", data);
+    });
+
+    socket.on("chatEnded", (data: { sala: string; pacienteId: string; medicoId: string }) => {
+      console.log("❌ Chat encerrado:", data);
+      setQueuePatients(prevQueue => 
+        prevQueue.filter(p => p.pacienteId !== data.pacienteId)
+      );
       setLastUpdate(new Date().toLocaleString('pt-BR'));
     });
 
+    socket.on("error", (error: { message: string }) => {
+      console.error("❌ Erro recebido:", error.message);
+    });
+
+    socket.on("connect", () => {
+      console.log("🔌 Socket reconectado, solicitando fila atual");
+      socket.emit("getQueue");
+    });
+
     return () => {
-      socket.off("queueList");
       socket.off("updateQueue");
+      socket.off("acceptPatient");
+      socket.off("chatEnded");
+      socket.off("error");
+      socket.off("connect");
     };
-  }, [token]);
+  }, [token, queuePatients]);
 
   const handleAcceptPatient = (patientId: string) => {
     if (!token) return;
@@ -123,11 +150,18 @@ const PatientListScreen: React.FC = () => {
 
     const chatRoom = `chat-${patientId}-${medicoId}`;
 
+    setQueuePatients(prevQueue => 
+      prevQueue.filter(p => p.pacienteId !== patientId)
+    );
+    setLastUpdate(new Date().toLocaleString('pt-BR'));
+
     socket.emit("acceptPatient", {
       pacienteId: patientId,
       medicoId: medicoId,
       sala: chatRoom
     });
+
+    socket.emit("joinRoom", { sala: chatRoom });
 
     navigate("/medicalChat", {
       state: {

@@ -9,6 +9,7 @@ import PatientRegistration from "../pages/PatientRegistration";
 import ProtectedRoute from "../Components/ProtectedRoute/ProtectedRoute";
 import NotFound from "../pages/NotFound";
 import ManageProfessionals from "../pages/ManageProfessionals/ManageProfessionals";
+import PatientHistory from "../pages/PatientHistory/PatientHistory";
 
 const AppRoutes = () => {
   return (
@@ -62,6 +63,16 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/patienthistory"
+          element={
+            <ProtectedRoute allowedRoles={["paciente"]}>
+              <PatientHistory />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/healthRiskForm"
           element={

@@ -6,7 +6,7 @@ const SocketContext = createContext<Socket | null>(null);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [_isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     // Cria uma nova instância do socket

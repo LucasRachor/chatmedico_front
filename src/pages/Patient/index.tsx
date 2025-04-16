@@ -25,7 +25,6 @@ const PatientListScreen: React.FC = () => {
   const [sortField, setSortField] = useState<"horaChegada" | "pesoTotal" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { token } = getAuthData();
-  let lastQueueString = "";
 
   const socket = useSocket();
   if (!socket) {
@@ -64,9 +63,6 @@ const PatientListScreen: React.FC = () => {
 
   useEffect(() => {
     if (!token) return;
-
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const doctorId = payload.sub;
 
     const fetchPacienteData = async (userId: string) => {
       if (!token || !userId) return;

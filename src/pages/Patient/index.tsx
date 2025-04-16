@@ -27,9 +27,6 @@ const PatientListScreen: React.FC = () => {
   const { token } = getAuthData();
 
   const socket = useSocket();
-  if (!socket) {
-    throw new Error("Socket not initialized");
-  }
 
   const handleSort = (field: "horaChegada" | "pesoTotal") => {
     if (sortField === field) {

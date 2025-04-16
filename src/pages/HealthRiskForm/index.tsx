@@ -19,7 +19,6 @@ import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
 import { API_URL } from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
-import axios from "axios";
 
 interface Alternativa {
   alternativa: string;
@@ -113,7 +112,7 @@ const HealthRiskForm: React.FC = () => {
         pressaoArterial: formData.pressaoArterial,
         respostas: Object.entries(formData)
           .filter(([key]) => key.startsWith('pergunta_'))
-          .map(([perguntaKey, valor]) => {
+          .map(([_perguntaKey, valor]) => {
             const [indexStr, altIndexStr, _pesoStr] = valor.split('_');
             const perguntaIndex = parseInt(indexStr);
             const altIndex = parseInt(altIndexStr);

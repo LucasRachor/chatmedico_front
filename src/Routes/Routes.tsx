@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "../pages/Login/Login";
+import Login from "../pages/Login";
 import PatientListScreen from "../pages/Patient";
 import HealthRiskForm from "../pages/HealthRiskForm";
 import ManageQuestions from "../pages/ManageQuestions";
@@ -8,7 +8,8 @@ import MedicalChat from "../pages/MedicalChat";
 import PatientRegistration from "../pages/PatientRegistration";
 import ProtectedRoute from "../Components/ProtectedRoute/ProtectedRoute";
 import NotFound from "../pages/NotFound";
-import ManageProfessionals from "../pages/ManageProfessionals/ManageProfessionals";
+import ManageProfessionals from "../pages/ManageProfessionals";
+import PatientHistory from "../pages/PatientHistory";
 
 const AppRoutes = () => {
   return (
@@ -59,6 +60,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={["paciente"]}>
               <PatientHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patientHistory"
+          element={
+            <ProtectedRoute allowedRoles={["paciente"]}>
+              <PatientHistory />
             </ProtectedRoute>
           }
         />

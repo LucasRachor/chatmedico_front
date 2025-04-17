@@ -10,15 +10,7 @@ const PatientHome: React.FC = () => {
   return (
     <Container maxWidth="md">
       <AppHeader />
-      <Button
-        color="primary"
-        variant="contained"
-        onClick={() => navigate("/manageQuestions")}
-        sx={{ width: 200, mb: 3, ml: 1 }}
-      >
-        Criar Formulário
-      </Button>
-      <Box sx={{ mt: 5, textAlign: "center" }}>
+      <Box sx={{ mt: 20, textAlign: "center" }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
           Bem-vindo à Plataforma Enfermagem, Monitoramento e Atendimento
           Inteligente e-MAI
@@ -36,7 +28,7 @@ const PatientHome: React.FC = () => {
             flexDirection: "column",
             gap: 2,
             alignItems: "center",
-            backgroundColor: "#F7FAFC", // Mantendo o padrão de cores do sistema
+            backgroundColor: "#F7FAFC",
           }}
         >
           <Button
@@ -45,7 +37,7 @@ const PatientHome: React.FC = () => {
             startIcon={<ChatBubbleOutline />}
             fullWidth
             sx={{ p: 2, fontSize: "1.1rem" }}
-            onClick={() => navigate("/chat-history")}
+            onClick={() => navigate("/patientHistory")}
           >
             Histórico de Atendimentos
           </Button>

@@ -117,7 +117,7 @@ const MedicalChat: React.FC = () => {
     socket.on("message", (data) => {
       // Não adiciona a mensagem se for a mensagem inicial e já tiver sido enviada
       if (!(data.mensagem === state?.mensagemInicial && initialMessageSent.current)) {
-        setMessages((prev) => [...prev, { sender: data.remetenteId, text: data.mensagem}]);
+        setMessages((prev) => [...prev, { sender: data.remetenteId, text: data.mensagem }]);
       }
     });
 
@@ -129,7 +129,7 @@ const MedicalChat: React.FC = () => {
         socket.emit("leaveQueue", { pacienteId });
       }
 
-      if (userRole === "medico") {
+      if (userRole === "medico" || userRole === "enfermeiro") {
         navigate("/patient");
       } else {
         navigate("/patientHome");
@@ -153,11 +153,11 @@ const MedicalChat: React.FC = () => {
   }, [token, navigate, state, sala]);
 
   useEffect(() => {
-    if (!token || !pacientAge || !pacientGender) return;
+    if (!token || !pacientAge || !pacientGender || chatStarted) return;
 
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = payload.sub;
-    
+
     socket.emit("enterQueue", {
       pacienteId: userId,
       nomeCompleto: pacientName,
@@ -173,23 +173,10 @@ const MedicalChat: React.FC = () => {
       })
     });
 
-    // Escuta quando o paciente é aceito
-    socket.on("acceptPatient", (data) => {
-      const chatRoom = `chat-${userId}-${data.medicoId}`;
-      setSala(chatRoom);
-      setChatStarted(true);
-      setIsWaiting(false);
-
-      // Entra na sala do chat
-      socket.emit("joinRoom", { sala: chatRoom });
-    });
-
     return () => {
-      // Remove o paciente da fila quando o componente é desmontado
       if (!chatStarted) {
         socket.emit("leaveQueue", { pacienteId: userId });
       }
-      socket.off("acceptPatient");
     };
   }, [token, pacientAge, pacientGender, pacientName, state?.pesoTotal, chatStarted]);
 
@@ -221,9 +208,23 @@ const MedicalChat: React.FC = () => {
 
   const getSenderName = (senderId: string) => {
     if (!token) return "Desconhecido";
+
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return senderId === payload.sub ? "Você" : (payload.role === "medico" ? "Paciente" : "Médico");
+
+    if (senderId === payload.sub) return "Você";
+
+    switch (payload.role) {
+      case "medico":
+        return "Paciente";
+      case "enfermeiro":
+        return "Paciente";
+      case "paciente":
+        return "Profissional de saúde";
+      default:
+        return "Desconhecido";
+    }
   };
+
 
   const isCurrentUser = (senderId: string) => {
     if (!token) return false;
@@ -242,7 +243,7 @@ const MedicalChat: React.FC = () => {
     socket.emit("endChat", {
       sala: sala,
       pacienteId: userRole === "paciente" ? userId : state?.remetenteId,
-      medicoId: userRole === "medico" ? userId : state?.remetenteId
+      medicoId: userRole === "medico" || userRole === "enfermeiro" ? userId : state?.remetenteId
     });
 
     // Remove o paciente da fila
@@ -252,7 +253,7 @@ const MedicalChat: React.FC = () => {
     }
 
     // Redireciona baseado no papel do usuário
-    if (userRole === "medico") {
+    if (userRole === "medico" || userRole === "enfermeiro") {
       navigate("/patient");
     } else {
       navigate("/patientHome");

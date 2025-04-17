@@ -41,11 +41,10 @@ const Login: React.FC = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("role", decodedToken.role);
 
-      if (decodedToken.role === "medico") {
+      if (decodedToken.role === "medico" || decodedToken.role === "enfermeiro") {
         navigate("/patient");
       } else if (decodedToken.role === "paciente") {
         navigate("/patientHome");
-
       } else if (decodedToken.role === "admin") {
         navigate("/manage-professionals")
       }

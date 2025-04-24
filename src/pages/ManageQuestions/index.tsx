@@ -25,6 +25,7 @@ import { Add, Delete, Edit } from "@mui/icons-material";
 import axios from "axios";
 import { API_URL } from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
+import { useNavigate } from "react-router-dom";
 
 type Alternative = {
   alternativa: string;
@@ -46,6 +47,7 @@ const RiskAssessment: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
   const [riskScore, setRiskScore] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -119,9 +121,14 @@ const RiskAssessment: React.FC = () => {
   };
 
   return (
+
     <Container maxWidth="md">
       <AppHeader />
       <Box sx={{ bgcolor: "#F7FAFC", p: { xs: 2, sm: 4 }, borderRadius: 2, boxShadow: 2, mt: 15, mb: 5 }}>
+        <Button variant="outlined" onClick={() => navigate("/patient")} sx={{ mt: 2, mb: 2 }}>
+          Voltar para Pacientes
+        </Button>
+
         <Typography variant="h5" align="center" gutterBottom sx={{ mb: 4 }}>
           Criar e Avaliar Formulário de Risco
         </Typography>

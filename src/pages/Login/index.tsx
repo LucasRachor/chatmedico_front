@@ -60,7 +60,7 @@ const Login: React.FC = () => {
   return (
     <Container maxWidth={false} disableGutters sx={{ ...loginStyles.container, backgroundImage: `url(${fundoLogin})` }}>
       <Paper elevation={3} sx={loginStyles.paper}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Typography sx={loginStyles.title}>ÁREA DE ACESSO</Typography>
           <Box sx={loginStyles.logoBox}>
             <img src={logo} alt="PAeSD Logo" style={loginStyles.logo} />

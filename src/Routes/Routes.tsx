@@ -10,6 +10,7 @@ import ProtectedRoute from "../Components/ProtectedRoute/ProtectedRoute";
 import NotFound from "../pages/NotFound";
 import ManageProfessionals from "../pages/ManageProfessionals";
 import PatientHistory from "../pages/PatientHistory";
+import AIChat from "../pages/AIChat";
 
 const AppRoutes = () => {
   return (
@@ -76,6 +77,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={["paciente"]}>
               <HealthRiskForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ai-chat"
+          element={
+            <ProtectedRoute allowedRoles={["medico", "paciente", "enfermeiro", "admin"]}>
+              <AIChat />
             </ProtectedRoute>
           }
         />

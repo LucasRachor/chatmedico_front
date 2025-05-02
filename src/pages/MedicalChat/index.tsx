@@ -273,7 +273,9 @@ const MedicalChat: React.FC = () => {
       ) : (
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h5">Chat com o {state?.remetenteId ? "Paciente" : "Médico"}</Typography>
+            <Typography variant="h5">
+              Chat Médico
+            </Typography>
             <Button
               variant="outlined"
               color="error"

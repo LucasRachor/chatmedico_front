@@ -137,7 +137,13 @@ const HealthRiskForm: React.FC = () => {
       });
 
       if (pesoTotal < 50) {
-        navigate('/antendimento-ia')
+        navigate('/ai-chat', {
+          state: {
+            pesoTotal,
+            temperatura: parseFloat(formData.temperatura),
+            pressaoArterial: formData.pressaoArterial
+          }
+        })
       }
 
       if (pesoTotal > 50) {

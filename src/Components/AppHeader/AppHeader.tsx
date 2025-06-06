@@ -1,7 +1,16 @@
-import { useState } from "react";
-import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Avatar, Box } from "@mui/material";
+import { useEffect, useState } from "react";
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Menu,
+  MenuItem,
+  Avatar,
+  Box
+} from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import logo from "../../assets/logo-web.svg";
+import logo from "../../assets/logo.png";
 import { getAuthData, logout } from "../../utils/auth";
 import { API_URL } from "../../config/api";
 
@@ -9,26 +18,28 @@ const AppHeader: React.FC = () => {
   const { token } = getAuthData();
   const [userName, setUserName] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
-  const userId = payload?.sub;
+
+  // Extrai payload do token (se existir)
+  const payload = token ? JSON.parse(atob(token.split(".")[1])) : null;
+  const userId = payload?.sub as string | undefined;
 
   const fetchPacienteData = async (userId: string) => {
     if (!token || !userId) return;
     try {
       const response = await fetch(`${API_URL}/users/find/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-
       if (!response.ok) {
-        throw new Error('Erro ao buscar dados do paciente');
+        throw new Error("Erro ao buscar dados do paciente");
       }
-
       const data = await response.json();
-      setUserName(data)
+      // Supondo que `data` seja apenas a string com o nome do usuário,
+      // ou um objeto { nome: string } — ajuste conforme seu back.
+      setUserName(typeof data === "string" ? data : data.nome);
     } catch (error) {
-      console.error('Erro ao buscar dados do paciente:', error);
+      console.error("Erro ao buscar dados do paciente:", error);
     }
   };
 
@@ -44,7 +55,11 @@ const AppHeader: React.FC = () => {
     logout();
   };
 
-  fetchPacienteData(userId)
+  useEffect(() => {
+    if (userId && token) {
+      fetchPacienteData(userId);
+    }
+  }, [userId, token]);
 
   return (
     <AppBar
@@ -70,7 +85,11 @@ const AppHeader: React.FC = () => {
           <IconButton onClick={handleMenuOpen}>
             <MoreVertIcon />
           </IconButton>
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
             <MenuItem onClick={handleMenuClose}>Mudar usuário</MenuItem>
             <MenuItem onClick={handleLogout}>Sair da sessão</MenuItem>
           </Menu>

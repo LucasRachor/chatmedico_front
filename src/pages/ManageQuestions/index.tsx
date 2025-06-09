@@ -32,6 +32,7 @@ type Alternative = {
 };
 
 type QuestionForm = {
+  id: string;
   pergunta: string;
   peso: number;
   observacao: string;

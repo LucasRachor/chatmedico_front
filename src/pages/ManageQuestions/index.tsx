@@ -98,7 +98,7 @@ const RiskAssessment: React.FC = () => {
     if (confirm("Deseja realmente excluir esta pergunta?")) {
       try {
         const token = localStorage.getItem("token");
-        const questionId = questions[index];
+        const questionId = questions[index].id;
         await axios.delete(`${API_URL}/questionario/${questionId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });

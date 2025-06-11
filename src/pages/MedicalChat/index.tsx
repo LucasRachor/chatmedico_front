@@ -8,6 +8,7 @@ import { API_URL } from "../../config/api";
 const socket = io(API_URL.replace('/api/v1', ''));
 
 interface LocationState {
+  riskRating: any;
   sala?: string;
   remetenteId?: string;
   mensagemInicial?: string;
@@ -163,6 +164,7 @@ const MedicalChat: React.FC = () => {
       nomeCompleto: pacientName,
       idade: pacientAge,
       genero: pacientGender,
+      riskRating: state.riskRating,
       pesoTotal: state?.pesoTotal || 0,
       temperatura: state?.temperatura || 0,
       pressaoArterial: state?.pressaoArterial || "0/0",

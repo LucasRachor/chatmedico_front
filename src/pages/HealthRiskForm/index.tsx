@@ -165,6 +165,7 @@ const HealthRiskForm: React.FC = () => {
       if (tipoAtendimento === 'Profissional') {
         navigate('/medicalChat', {
           state: {
+            riskRating,
             media,
             temperatura: parseFloat(formData.temperatura),
             pressaoArterial: formData.pressaoArterial

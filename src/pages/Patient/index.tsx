@@ -33,6 +33,7 @@ interface QueuePatient {
   pesoTotal: string;
   temperatura: string;
   pressaoArterial: string;
+  riskRating: string;
 }
 
 interface QueueData {
@@ -59,13 +60,16 @@ const PatientListScreen: React.FC = () => {
     }
   };
 
-  const getRiskChip = (pesoTotal: number) => {
-    if (pesoTotal >= 9) return { label: "Vermelho", color: '#d32f2f', textColor: '#fff' };
-    if (pesoTotal >= 7) return { label: "Laranja", color: '#f57c00', textColor: '#fff' };
-    if (pesoTotal >= 5) return { label: "Amarelo", color: '#fbc02d', textColor: '#000' };
-    if (pesoTotal >= 3) return { label: "Verde", color: '#388e3c', textColor: '#fff' };
-    return { label: "Azul", color: '#1976d2', textColor: '#fff' };
-  };
+const riskChipMap: Record<string, { label: string; color: string; textColor: string }> = {
+  VERMELHO: { label: "Vermelho", color: '#d32f2f', textColor: '#fff' },
+  AMARELO: { label: "Amarelo", color: '#fbc02d', textColor: '#000' },
+  VERDE: { label: "Verde", color: '#388e3c', textColor: '#fff' },
+  AZUL: { label: "Azul", color: '#1976d2', textColor: '#fff' },
+};
+
+const getRiskChip = (riskRating: string) => {
+  return riskChipMap[riskRating] || riskChipMap["AZUL"];
+};
 
   const sortedPatients = [...queuePatients].sort((a, b) => {
     if (!sortField) return 0;
@@ -89,7 +93,6 @@ const PatientListScreen: React.FC = () => {
     const risk = parseInt(p.pesoTotal);
     switch (riskFilter) {
       case "vermelho": return risk >= 9;
-      case "laranja": return risk >= 7 && risk < 9;
       case "amarelo": return risk >= 5 && risk < 7;
       case "verde": return risk >= 3 && risk < 5;
       case "azul": return risk < 3;
@@ -179,7 +182,6 @@ const PatientListScreen: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
               <Chip label="Vermelho: Emergência" sx={{ backgroundColor: '#d32f2f', color: '#fff' }} size="small" />
-              <Chip label="Laranja: Muito urgente" sx={{ backgroundColor: '#f57c00', color: '#fff' }} size="small" />
               <Chip label="Amarelo: Urgente" sx={{ backgroundColor: '#fbc02d', color: '#000' }} size="small" />
               <Chip label="Verde: Pouco urgente" sx={{ backgroundColor: '#388e3c', color: '#fff' }} size="small" />
               <Chip label="Azul: Não urgente" sx={{ backgroundColor: '#1976d2', color: '#fff' }} size="small" />
@@ -197,7 +199,6 @@ const PatientListScreen: React.FC = () => {
               >
                 <MenuItem value="all">Todos</MenuItem>
                 <MenuItem value="vermelho">Emergência</MenuItem>
-                <MenuItem value="laranja">Muito urgente</MenuItem>
                 <MenuItem value="amarelo">Urgente</MenuItem>
                 <MenuItem value="verde">Pouco urgente</MenuItem>
                 <MenuItem value="azul">Não urgente</MenuItem>
@@ -236,7 +237,7 @@ const PatientListScreen: React.FC = () => {
             </TableHead>
             <TableBody>
               {filteredPatients.map((patient) => {
-                const risk = getRiskChip(parseInt(patient.pesoTotal));
+                const risk = getRiskChip(patient.riskRating);
                 return (
                   <TableRow key={patient.pacienteId}>
                     <TableCell>{patient.nomeCompleto || "Paciente sem nome"}</TableCell>

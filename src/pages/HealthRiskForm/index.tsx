@@ -80,6 +80,21 @@ const HealthRiskForm: React.FC = () => {
     fetchPerguntas();
   }, [token, navigate]);
 
+
+  const riskRatingMap: { [key: string]: (media: number) => boolean } = {
+    AZUL: (media) => media < 25,
+    VERDE: (media) => media >= 25 && media < 50,
+    AMARELO: (media) => media >= 50 && media < 75,
+    VERMELHO: (media) => media > 75,
+  };
+
+  const retrieveRiskRating = (media: number): string => {
+    for (const [rating, validate] of Object.entries(riskRatingMap)) {
+      if (validate(media)) return rating;
+    }
+    return 'DESCONHECIDO';
+  };
+
   const onSubmit = async (formData: FormData) => {
     if (!token) return;
 
@@ -87,24 +102,18 @@ const HealthRiskForm: React.FC = () => {
     const userId = payload.sub;
 
     try {
-      const pesoTotal = Object.entries(formData)
-        .filter(([key]) => key.startsWith('pergunta_'))
-        .reduce((total, [_, valor]) => {
-          const peso = parseInt(valor.split('_')[2] || '0');
-          return total + peso;
-        }, 0);
+      const respostasPerguntas = Object.entries(formData)
+        .filter(([key]) => key.startsWith('pergunta_'));
 
+      const pesoTotal = respostasPerguntas.reduce((total, [_, valor]) => {
+        const peso = parseInt(valor.split('_')[2] || '0');
+        return total + peso;
+      }, 0);
 
-      let tipoAtendimento = '';
+      const media = pesoTotal / respostasPerguntas.length;
 
-      if (pesoTotal < 50) {
-        tipoAtendimento = 'IA'
-      }
-
-      if (pesoTotal > 50) {
-        tipoAtendimento = 'Profissional'
-      }
-
+      const riskRating = retrieveRiskRating(media);
+      let tipoAtendimento = riskRating === 'AZUL' || 'VERDE' ? 'IA' : 'Profissional';
       const data = {
         tipoAtendimento,
         pacienteId: userId,
@@ -112,43 +121,46 @@ const HealthRiskForm: React.FC = () => {
         pressaoArterial: formData.pressaoArterial,
         respostas: Object.entries(formData)
           .filter(([key]) => key.startsWith('pergunta_'))
-          .map(([_perguntaKey, valor]) => {
-            const [indexStr, altIndexStr, _pesoStr] = valor.split('_');
-            const perguntaIndex = parseInt(indexStr);
-            const altIndex = parseInt(altIndexStr);
+          .map(([_, valor]) => {
+            const partes = valor.split('_');
+            const [indexStr, altIndexStr, _pesoStr] = partes;
+            const perguntaIndex = parseInt(indexStr, 10);
+            const altIndex = parseInt(altIndexStr, 10);
+            if (isNaN(perguntaIndex) || isNaN(altIndex)) {
+              throw new Error(`Índices inválidos: pergunta='${indexStr}', alternativa='${altIndexStr}'`);
+            }
             const perguntaSelecionada = perguntas[perguntaIndex];
-            const alternativaSelecionada = perguntaSelecionada?.alternativas[altIndex];
-
+            const alternativaSelecionada = perguntaSelecionada.alternativas[altIndex];
             return {
-              pergunta: perguntaSelecionada?.pergunta,
-              resposta: alternativaSelecionada?.alternativa
+              pergunta: perguntaSelecionada.pergunta,
+              resposta: alternativaSelecionada.alternativa
             };
           }),
+        classificacaoRisco: riskRating,
       };
-      console.log(data)
+      console.log('Dados do formulário:', data);
+      // await fetch(`${API_URL}/atendimentos`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     Authorization: `Bearer ${token}`
+      //   },
+      //   body: JSON.stringify(data),
+      // });
 
-      await fetch(`${API_URL}/atendimentos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(data),
-      });
+      // if (pesoTotal < 50) {
+      //   // navigate('/antendimento-ia')
+      // }
 
-      if (pesoTotal < 50) {
-        navigate('/antendimento-ia')
-      }
-
-      if (pesoTotal > 50) {
-        navigate('/medicalChat', {
-          state: {
-            pesoTotal,
-            temperatura: parseFloat(formData.temperatura),
-            pressaoArterial: formData.pressaoArterial
-          }
-        })
-      }
+      // if (pesoTotal > 50) {
+      //   navigate('/medicalChat', {
+      //     state: {
+      //       pesoTotal,
+      //       temperatura: parseFloat(formData.temperatura),
+      //       pressaoArterial: formData.pressaoArterial
+      //     }
+      //   })
+      // }
 
     } catch (error) {
       console.log(error)

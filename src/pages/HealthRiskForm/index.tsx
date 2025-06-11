@@ -28,6 +28,7 @@ interface Alternativa {
 interface Pergunta {
   pergunta: string;
   observacao?: string;
+  peso: number;
   alternativas: Alternativa[];
 }
 
@@ -104,16 +105,26 @@ const HealthRiskForm: React.FC = () => {
     try {
       const respostasPerguntas = Object.entries(formData)
         .filter(([key]) => key.startsWith('pergunta_'));
+      let numerador = 0;
+      let denominador = 0;
 
-      const pesoTotal = respostasPerguntas.reduce((total, [_, valor]) => {
-        const peso = parseInt(valor.split('_')[2] || '0');
-        return total + peso;
-      }, 0);
+      respostasPerguntas.forEach(([key, valor]) => {
+        const [perguntaIndexStr, alternativaIndexStr, pesoEscolhidoStr] = valor.split('_');
+        const perguntaIndex = parseInt(perguntaIndexStr, 10);
+        const pesoEscolhido = parseInt(pesoEscolhidoStr, 10);
 
-      const media = pesoTotal / respostasPerguntas.length;
+        const pergunta = perguntas[perguntaIndex];
+        const pesoDaPergunta = pergunta?.peso ?? 0;
+
+        numerador += pesoEscolhido * pesoDaPergunta;
+        denominador += pesoDaPergunta;
+      });
+
+
+      const media = denominador ? (numerador / denominador) : 0;
 
       const riskRating = retrieveRiskRating(media);
-      let tipoAtendimento = riskRating === 'AZUL' || 'VERDE' ? 'IA' : 'Profissional';
+      const tipoAtendimento = ['AZUL', 'VERDE'].includes(riskRating) ? 'IA' : 'Profissional';
       const data = {
         tipoAtendimento,
         pacienteId: userId,
@@ -138,29 +149,28 @@ const HealthRiskForm: React.FC = () => {
           }),
         classificacaoRisco: riskRating,
       };
-      console.log('Dados do formulário:', data);
-      // await fetch(`${API_URL}/atendimentos`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     Authorization: `Bearer ${token}`
-      //   },
-      //   body: JSON.stringify(data),
-      // });
+      await fetch(`${API_URL}/atendimentos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data),
+      });
 
-      // if (pesoTotal < 50) {
-      //   // navigate('/antendimento-ia')
-      // }
+      if (tipoAtendimento === 'IA') {
+        navigate('/antendimento-ia')
+      }
 
-      // if (pesoTotal > 50) {
-      //   navigate('/medicalChat', {
-      //     state: {
-      //       pesoTotal,
-      //       temperatura: parseFloat(formData.temperatura),
-      //       pressaoArterial: formData.pressaoArterial
-      //     }
-      //   })
-      // }
+      if (tipoAtendimento === 'Profissional') {
+        navigate('/medicalChat', {
+          state: {
+            media,
+            temperatura: parseFloat(formData.temperatura),
+            pressaoArterial: formData.pressaoArterial
+          }
+        })
+      }
 
     } catch (error) {
       console.log(error)

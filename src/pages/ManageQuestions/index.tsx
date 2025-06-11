@@ -115,6 +115,7 @@ const RiskAssessment: React.FC = () => {
 
   const calculateRisk = () => {
     const totalRisk = Object.values(answers).reduce((sum, weight) => sum + weight, 0);
+    setOpenDialog(false);
     setRiskScore(totalRisk);
   };
 

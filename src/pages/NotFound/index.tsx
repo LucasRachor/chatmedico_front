@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import logo from "../../assets/logo.svg";
+import logo from "../../assets/logo.png";
 
 const NotFound = () => {
 

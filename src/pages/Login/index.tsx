@@ -4,7 +4,7 @@ import { Container, TextField, Button, Typography, Box, Paper, InputAdornment, L
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import fundoLogin from "../../assets/fundo-login.jpg";
-import logo from "../../assets/logo.svg";
+import logo from "../../assets/logo.png";
 import loginStyles from "./Login.styles";
 import { decodeJwtToken } from "../../utils/jwt";
 import { API_URL } from "../../config/api";

@@ -22,7 +22,7 @@ import { getAuthData } from '../../utils/auth';
 const socket = io(API_URL.replace('/api/v1', ''));
 
 interface LocationState {
-    pesoTotal?: number;
+    riskRating: string;
     temperatura?: number;
     pressaoArterial?: string;
 }
@@ -197,10 +197,10 @@ const AIChat: React.FC = () => {
 
     const handleEndChat = () => {
         if (!token) return;
-        
+
         const payload = JSON.parse(atob(token.split('.')[1]));
         const userId = payload.sub;
-        
+
         if (isInQueue) {
             socket.emit("leaveQueue", { pacienteId: userId });
         }
@@ -209,9 +209,9 @@ const AIChat: React.FC = () => {
 
     const handleRequestDoctor = async () => {
         if (!token || !pacientAge || !pacientGender) {
-            setMessages(prev => [...prev, { 
-                text: 'Não foi possível solicitar atendimento. Tente novamente mais tarde.', 
-                isUser: false 
+            setMessages(prev => [...prev, {
+                text: 'Não foi possível solicitar atendimento. Tente novamente mais tarde.',
+                isUser: false
             }]);
             return;
         }
@@ -226,9 +226,9 @@ const AIChat: React.FC = () => {
                 nomeCompleto: pacientName,
                 idade: pacientAge,
                 genero: pacientGender,
-                pesoTotal: state?.pesoTotal || 0,
-                temperatura: state?.temperatura || 0,
-                pressaoArterial: state?.pressaoArterial || "0/0",
+                riskRating: state.riskRating,
+                temperatura: state.temperatura,
+                pressaoArterial: state.pressaoArterial,
                 horaChegada: new Date().toLocaleString('pt-BR', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -237,14 +237,15 @@ const AIChat: React.FC = () => {
             });
 
             setIsInQueue(true);
-            setMessages(prev => [...prev, { 
-                text: 'Sua solicitação de atendimento foi registrada. Um médico irá atendê-lo em breve.', 
-                isUser: false 
+            setMessages(prev => [...prev, {
+                text: 'Sua solicitação de atendimento foi registrada. Um médico irá atendê-lo em breve.',
+                isUser: false
             }]);
         } catch (error) {
-            setMessages(prev => [...prev, { 
-                text: 'Ocorreu um erro ao solicitar atendimento. Tente novamente mais tarde.', 
-                isUser: false 
+            console.log(error)
+            setMessages(prev => [...prev, {
+                text: 'Ocorreu um erro ao solicitar atendimento. Tente novamente mais tarde.',
+                isUser: false
             }]);
         }
     };
@@ -265,10 +266,10 @@ const AIChat: React.FC = () => {
                         maxHeight: 'calc(100vh - 80px)',
                     }}
                 >
-                    <Box 
-                        sx={{ 
-                            p: 1.5, 
-                            borderBottom: 1, 
+                    <Box
+                        sx={{
+                            p: 1.5,
+                            borderBottom: 1,
                             borderColor: 'divider',
                             bgcolor: theme.palette.primary.main,
                             color: theme.palette.primary.contrastText,
@@ -381,10 +382,10 @@ const AIChat: React.FC = () => {
                         <div ref={messagesEndRef} />
                     </Box>
 
-                    <Box 
-                        sx={{ 
-                            p: 1.5, 
-                            borderTop: 1, 
+                    <Box
+                        sx={{
+                            p: 1.5,
+                            borderTop: 1,
                             borderColor: 'divider',
                             bgcolor: theme.palette.background.paper,
                             flexShrink: 0
@@ -414,7 +415,7 @@ const AIChat: React.FC = () => {
                                 color="primary"
                                 onClick={handleSend}
                                 disabled={!input.trim() || isLoading}
-                                sx={{ 
+                                sx={{
                                     minWidth: '40px',
                                     width: '40px',
                                     height: '40px',

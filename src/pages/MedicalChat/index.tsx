@@ -8,6 +8,7 @@ import { API_URL } from "../../config/api";
 const socket = io(API_URL.replace('/api/v1', ''));
 
 interface LocationState {
+  riskRating: any;
   sala?: string;
   remetenteId?: string;
   mensagemInicial?: string;
@@ -129,7 +130,7 @@ const MedicalChat: React.FC = () => {
         socket.emit("leaveQueue", { pacienteId });
       }
 
-      if (userRole === "medico" || userRole === "enfermeiro") {
+      if (userRole === "medico") {
         navigate("/patient");
       } else {
         navigate("/patientHome");
@@ -153,7 +154,7 @@ const MedicalChat: React.FC = () => {
   }, [token, navigate, state, sala]);
 
   useEffect(() => {
-    if (!token || !pacientAge || !pacientGender || chatStarted) return;
+    if (!token || !pacientAge || !pacientGender) return;
 
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = payload.sub;
@@ -163,6 +164,7 @@ const MedicalChat: React.FC = () => {
       nomeCompleto: pacientName,
       idade: pacientAge,
       genero: pacientGender,
+      riskRating: state.riskRating,
       pesoTotal: state?.pesoTotal || 0,
       temperatura: state?.temperatura || 0,
       pressaoArterial: state?.pressaoArterial || "0/0",
@@ -173,10 +175,23 @@ const MedicalChat: React.FC = () => {
       })
     });
 
+    // Escuta quando o paciente é aceito
+    socket.on("acceptPatient", (data) => {
+      const chatRoom = `chat-${userId}-${data.medicoId}`;
+      setSala(chatRoom);
+      setChatStarted(true);
+      setIsWaiting(false);
+
+      // Entra na sala do chat
+      socket.emit("joinRoom", { sala: chatRoom });
+    });
+
     return () => {
+      // Remove o paciente da fila quando o componente é desmontado
       if (!chatStarted) {
         socket.emit("leaveQueue", { pacienteId: userId });
       }
+      socket.off("acceptPatient");
     };
   }, [token, pacientAge, pacientGender, pacientName, state?.pesoTotal, chatStarted]);
 
@@ -208,23 +223,9 @@ const MedicalChat: React.FC = () => {
 
   const getSenderName = (senderId: string) => {
     if (!token) return "Desconhecido";
-
     const payload = JSON.parse(atob(token.split('.')[1]));
-
-    if (senderId === payload.sub) return "Você";
-
-    switch (payload.role) {
-      case "medico":
-        return "Paciente";
-      case "enfermeiro":
-        return "Paciente";
-      case "paciente":
-        return "Profissional de saúde";
-      default:
-        return "Desconhecido";
-    }
+    return senderId === payload.sub ? "Você" : (payload.role === "medico" ? "Paciente" : "Médico");
   };
-
 
   const isCurrentUser = (senderId: string) => {
     if (!token) return false;
@@ -243,7 +244,7 @@ const MedicalChat: React.FC = () => {
     socket.emit("endChat", {
       sala: sala,
       pacienteId: userRole === "paciente" ? userId : state?.remetenteId,
-      medicoId: userRole === "medico" || userRole === "enfermeiro" ? userId : state?.remetenteId
+      medicoId: userRole === "medico" ? userId : state?.remetenteId
     });
 
     // Remove o paciente da fila
@@ -253,12 +254,29 @@ const MedicalChat: React.FC = () => {
     }
 
     // Redireciona baseado no papel do usuário
-    if (userRole === "medico" || userRole === "enfermeiro") {
+    if (userRole === "medico") {
       navigate("/patient");
     } else {
       navigate("/patientHome");
     }
   };
+
+  const role = localStorage.getItem('role')
+
+  function getName(role: string | null) {
+
+    switch (role) {
+      case 'paciente':
+        return role = 'MÉDICO'
+      case 'medico':
+        return role = 'PACIENTE'
+      case 'enfermeiro':
+        return role = 'PACIENTE'
+    }
+
+  }
+
+  const nome = getName(role)
 
   return (
     <Box sx={{ maxWidth: "600px", margin: "auto", mt: 5, textAlign: "center" }}>
@@ -273,9 +291,7 @@ const MedicalChat: React.FC = () => {
       ) : (
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h5">
-              Chat Médico
-            </Typography>
+            <Typography variant="h5">Chat com o {nome}</Typography>
             <Button
               variant="outlined"
               color="error"

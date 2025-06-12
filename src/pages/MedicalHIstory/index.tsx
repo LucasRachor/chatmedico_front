@@ -31,6 +31,7 @@ interface Resposta {
 
 interface Atendimento {
     dataAtendimento: string;
+    nomePaciente: string;
     pressaoArterial: string;
     temperatura: string;
     tipoAtendimento: string;
@@ -39,7 +40,7 @@ interface Atendimento {
     classificacaoRisco: string;
 }
 
-const PatientHistory: React.FC = () => {
+const MedicalHistory: React.FC = () => {
     const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
     const [openRows, setOpenRows] = useState<{ [key: number]: boolean }>({});
     const [error, setError] = useState('');
@@ -48,7 +49,7 @@ const PatientHistory: React.FC = () => {
 
     const fetchAtendimentos = async () => {
         try {
-            const response = await axios.get(`${API_URL}/atendimentos`, {
+            const response = await axios.get(`${API_URL}/atendimentos/all`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -85,10 +86,6 @@ const PatientHistory: React.FC = () => {
         }
     };
 
-    const voltar = async () => {
-        navigate('/PatientHome')
-    }
-
     useEffect(() => {
         fetchAtendimentos();
     }, []);
@@ -98,24 +95,25 @@ const PatientHistory: React.FC = () => {
             <AppHeader />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                 <Typography variant="h4" component="h1">
-                    Meus Atendimentos:
+                    Últimos atendimentos:
                 </Typography>
-            </Box>
 
-            <Button
-                variant="contained"
-                color="primary"
-                onClick={voltar}
-                style={{ marginBottom: '16px' }}
-            >
-                Voltar
-            </Button>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => navigate("/Patient")}
+                >
+                    Voltar
+                </Button>
+
+            </Box>
 
             <TableContainer component={Paper} style={{ maxHeight: '500px', overflowY: 'initial', alignContent: 'center' }}>
                 <Table stickyHeader>
                     <TableHead>
                         <TableRow>
                             <TableCell>Data e Hora</TableCell>
+                            <TableCell>Nome do Paciente</TableCell>
                             <TableCell>Pressão Arterial</TableCell>
                             <TableCell>Temperatura</TableCell>
                             <TableCell>Município</TableCell>
@@ -129,6 +127,7 @@ const PatientHistory: React.FC = () => {
                             <React.Fragment key={index}>
                                 <TableRow>
                                     <TableCell>{formatDate(atendimento.dataAtendimento)}</TableCell>
+                                    <TableCell>{atendimento.nomePaciente}</TableCell>
                                     <TableCell>{atendimento.pressaoArterial}</TableCell>
                                     <TableCell>{atendimento.temperatura}°C</TableCell>
                                     <TableCell>{atendimento.cidade}</TableCell>
@@ -213,4 +212,4 @@ const PatientHistory: React.FC = () => {
     );
 };
 
-export default PatientHistory; 
+export default MedicalHistory; 

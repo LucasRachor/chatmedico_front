@@ -12,8 +12,7 @@ const PatientHome: React.FC = () => {
       <AppHeader />
       <Box sx={{ mt: 20, textAlign: "center" }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Bem-vindo à Plataforma Enfermagem, Monitoramento e Atendimento
-          Inteligente e-MAI
+          Bem-vindo ao seu Ambiente Digital de Enfermagem Monitoramento e Atendimento Inteligente, e-MAI
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Escolha uma opção abaixo para continuar.

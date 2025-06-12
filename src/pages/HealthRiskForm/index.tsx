@@ -28,6 +28,7 @@ interface Alternativa {
 interface Pergunta {
   pergunta: string;
   observacao?: string;
+  peso: number;
   alternativas: Alternativa[];
 }
 
@@ -80,6 +81,21 @@ const HealthRiskForm: React.FC = () => {
     fetchPerguntas();
   }, [token, navigate]);
 
+
+  const riskRatingMap: { [key: string]: (media: number) => boolean } = {
+    AZUL: (media) => media < 25,
+    VERDE: (media) => media >= 25 && media < 50,
+    AMARELO: (media) => media >= 50 && media < 75,
+    VERMELHO: (media) => media > 75,
+  };
+
+  const retrieveRiskRating = (media: number): string => {
+    for (const [rating, validate] of Object.entries(riskRatingMap)) {
+      if (validate(media)) return rating;
+    }
+    return 'DESCONHECIDO';
+  };
+
   const onSubmit = async (formData: FormData) => {
     if (!token) return;
 
@@ -87,24 +103,28 @@ const HealthRiskForm: React.FC = () => {
     const userId = payload.sub;
 
     try {
-      const pesoTotal = Object.entries(formData)
-        .filter(([key]) => key.startsWith('pergunta_'))
-        .reduce((total, [_, valor]) => {
-          const peso = parseInt(valor.split('_')[2] || '0');
-          return total + peso;
-        }, 0);
+      const respostasPerguntas = Object.entries(formData)
+        .filter(([key]) => key.startsWith('pergunta_'));
+      let numerador = 0;
+      let denominador = 0;
+
+      respostasPerguntas.forEach(([_key, valor]) => {
+        const [perguntaIndexStr, _alternativaIndexStr, pesoEscolhidoStr] = valor.split('_');
+        const perguntaIndex = parseInt(perguntaIndexStr, 10);
+        const pesoEscolhido = parseInt(pesoEscolhidoStr, 10);
+
+        const pergunta = perguntas[perguntaIndex];
+        const pesoDaPergunta = pergunta?.peso ?? 0;
+
+        numerador += pesoEscolhido * pesoDaPergunta;
+        denominador += pesoDaPergunta;
+      });
 
 
-      let tipoAtendimento = '';
+      const media = denominador ? (numerador / denominador) : 0;
 
-      if (pesoTotal < 50) {
-        tipoAtendimento = 'IA'
-      }
-
-      if (pesoTotal > 50) {
-        tipoAtendimento = 'Profissional'
-      }
-
+      const riskRating = retrieveRiskRating(media);
+      const tipoAtendimento = ['AZUL', 'VERDE'].includes(riskRating) ? 'IA' : 'Profissional';
       const data = {
         tipoAtendimento,
         pacienteId: userId,
@@ -112,21 +132,23 @@ const HealthRiskForm: React.FC = () => {
         pressaoArterial: formData.pressaoArterial,
         respostas: Object.entries(formData)
           .filter(([key]) => key.startsWith('pergunta_'))
-          .map(([_perguntaKey, valor]) => {
-            const [indexStr, altIndexStr, _pesoStr] = valor.split('_');
-            const perguntaIndex = parseInt(indexStr);
-            const altIndex = parseInt(altIndexStr);
+          .map(([_, valor]) => {
+            const partes = valor.split('_');
+            const [indexStr, altIndexStr, _pesoStr] = partes;
+            const perguntaIndex = parseInt(indexStr, 10);
+            const altIndex = parseInt(altIndexStr, 10);
+            if (isNaN(perguntaIndex) || isNaN(altIndex)) {
+              throw new Error(`Índices inválidos: pergunta='${indexStr}', alternativa='${altIndexStr}'`);
+            }
             const perguntaSelecionada = perguntas[perguntaIndex];
-            const alternativaSelecionada = perguntaSelecionada?.alternativas[altIndex];
-
+            const alternativaSelecionada = perguntaSelecionada.alternativas[altIndex];
             return {
-              pergunta: perguntaSelecionada?.pergunta,
-              resposta: alternativaSelecionada?.alternativa
+              pergunta: perguntaSelecionada.pergunta,
+              resposta: alternativaSelecionada.alternativa
             };
           }),
+        classificacaoRisco: riskRating,
       };
-      console.log(data)
-
       await fetch(`${API_URL}/atendimentos`, {
         method: 'POST',
         headers: {
@@ -136,20 +158,23 @@ const HealthRiskForm: React.FC = () => {
         body: JSON.stringify(data),
       });
 
-      if (pesoTotal < 50) {
+      if (tipoAtendimento === 'IA') {
+        console.log(riskRating)
         navigate('/ai-chat', {
           state: {
-            pesoTotal,
+            riskRating,
+            media,
             temperatura: parseFloat(formData.temperatura),
             pressaoArterial: formData.pressaoArterial
           }
         })
       }
 
-      if (pesoTotal > 50) {
+      if (tipoAtendimento === 'Profissional') {
         navigate('/medicalChat', {
           state: {
-            pesoTotal,
+            riskRating,
+            media,
             temperatura: parseFloat(formData.temperatura),
             pressaoArterial: formData.pressaoArterial
           }

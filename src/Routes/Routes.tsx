@@ -11,6 +11,7 @@ import NotFound from "../pages/NotFound";
 import ManageProfessionals from "../pages/ManageProfessionals";
 import PatientHistory from "../pages/PatientHistory";
 import AIChat from "../pages/AIChat";
+import MedicalHistory from "../pages/MedicalHIstory";
 
 const AppRoutes = () => {
   return (
@@ -88,6 +89,16 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/medicalHistory"
+          element={
+            <ProtectedRoute allowedRoles={["medico", "enfermeiro", "admin"]}>
+              <MedicalHistory />
+            </ProtectedRoute>
+          }
+        />
+
+
 
         {<Route path="*" element={<NotFound />} />}
       </Routes>

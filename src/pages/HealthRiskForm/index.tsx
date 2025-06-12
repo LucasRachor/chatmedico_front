@@ -13,7 +13,11 @@ import {
   Grid,
   CircularProgress,
   Alert,
-  TextField
+  TextField,
+  Modal,
+  Fade,
+  Backdrop,
+  Chip
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
@@ -50,6 +54,11 @@ const HealthRiskForm: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = getAuthData();
+
+  const [openModal, setOpenModal] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const [destination, setDestination] = useState<string>("");
+  const [ratingDisplay, setRatingDisplay] = useState<string>("");
 
   useEffect(() => {
     const fetchPerguntas = async () => {
@@ -94,6 +103,21 @@ const HealthRiskForm: React.FC = () => {
       if (validate(media)) return rating;
     }
     return 'DESCONHECIDO';
+  };
+
+  const getClassificationColor = (classification: string) => {
+    switch (classification.toLowerCase()) {
+      case 'vermelho':
+        return 'error';
+      case 'amarelo':
+        return 'warning';
+      case 'verde':
+        return 'success';
+      case 'azul':
+        return 'primary';
+      default:
+        return 'default';
+    }
   };
 
   const onSubmit = async (formData: FormData) => {
@@ -149,6 +173,7 @@ const HealthRiskForm: React.FC = () => {
           }),
         classificacaoRisco: riskRating,
       };
+
       await fetch(`${API_URL}/atendimentos`, {
         method: 'POST',
         headers: {
@@ -158,29 +183,23 @@ const HealthRiskForm: React.FC = () => {
         body: JSON.stringify(data),
       });
 
-      if (tipoAtendimento === 'IA') {
-        console.log(riskRating)
-        navigate('/ai-chat', {
-          state: {
-            riskRating,
-            media,
-            temperatura: parseFloat(formData.temperatura),
-            pressaoArterial: formData.pressaoArterial,
-            mensagem: `Olá, meus principais sintomas são: ${formData.sintomas}, pode me ajudar?`
-          }
-        })
-      }
+      setDestination(tipoAtendimento === 'IA' ? 'Atendimento com IA' : 'Atendimento Profissional');
+      setRatingDisplay(riskRating);
+      setOpenModal(true);
 
-      if (tipoAtendimento === 'Profissional') {
-        navigate('/medicalChat', {
-          state: {
-            riskRating,
-            media,
-            temperatura: parseFloat(formData.temperatura),
-            pressaoArterial: formData.pressaoArterial
+      let count = 5;
+      const timer = setInterval(() => {
+        count -= 1;
+        setCountdown(count);
+        if (count === 0) {
+          clearInterval(timer);
+          if (tipoAtendimento === 'IA') {
+            navigate('/ai-chat', { state: { riskRating, media, temperatura: parseFloat(formData.temperatura), pressaoArterial: formData.pressaoArterial, mensagem: `Olá, meus principais sintomas são: ${formData.sintomas}, pode me ajudar?` } });
+          } else {
+            navigate('/medicalChat', { state: { riskRating, media, temperatura: parseFloat(formData.temperatura), pressaoArterial: formData.pressaoArterial } });
           }
-        })
-      }
+        }
+      }, 1000);
 
     } catch (error) {
       console.log(error)
@@ -282,7 +301,7 @@ const HealthRiskForm: React.FC = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={12} sx={{width: '100'}}>
+            <Grid item xs={12} md={12} sx={{ width: '100' }}>
               <Controller
                 name="sintomas"
                 control={control}
@@ -352,6 +371,29 @@ const HealthRiskForm: React.FC = () => {
           </Grid>
         </form>
       </Box>
+
+      <Modal
+        open={openModal}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{ timeout: 500 }}
+      >
+        <Fade in={openModal}>
+          <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', bgcolor: 'background.paper', p: 4, borderRadius: 2, textAlign: 'center', boxShadow: 24 }}>
+            <Typography variant="h6" gutterBottom>Redirecionando para {destination}</Typography>
+            <Typography variant="subtitle1" gutterBottom>Sua classificação:
+              <br />
+              <Chip
+                label={ratingDisplay}
+                color={getClassificationColor(ratingDisplay)}
+                variant="outlined"
+              />
+            </Typography>
+            <Typography variant="h4">{countdown}</Typography>
+          </Box>
+        </Fade>
+      </Modal>
+
     </Container>
   );
 };

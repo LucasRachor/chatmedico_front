@@ -25,6 +25,7 @@ interface LocationState {
     riskRating: string;
     temperatura?: number;
     pressaoArterial?: string;
+    mensagem: string
 }
 
 interface PacienteData {
@@ -75,6 +76,32 @@ const AIChat: React.FC = () => {
         }
     };
 
+    const sendInitialMessage = async (initialText: string) => {
+        setMessages(prev => [...prev, { text: initialText, isUser: true }]);
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${API_URL}/ia/ask`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ question: initialText }),
+            });
+            const data = await response.json();
+            const cleanResponse = data.response
+                .replace(/<\|im_start\|>.*$/g, '')
+                .replace(/^[^a-zA-Z0-9á-úÁ-Ú]+/g, '')
+                .trim();
+            setMessages(prev => [...prev, { text: '', isUser: false, isTyping: true }]);
+            typeMessage(cleanResponse, messages.length + 1);
+        } catch (error) {
+            setMessages(prev => [...prev, { text: 'Desculpe, ocorreu um erro. Tente novamente.', isUser: false }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!token) {
             navigate('/');
@@ -84,6 +111,8 @@ const AIChat: React.FC = () => {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const userId = payload.sub;
         fetchPacienteData(userId);
+
+        sendInitialMessage(state.mensagem);
 
         // Escuta quando um paciente é aceito
         socket.on("acceptPatient", (data) => {

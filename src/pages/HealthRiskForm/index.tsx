@@ -165,7 +165,8 @@ const HealthRiskForm: React.FC = () => {
             riskRating,
             media,
             temperatura: parseFloat(formData.temperatura),
-            pressaoArterial: formData.pressaoArterial
+            pressaoArterial: formData.pressaoArterial,
+            mensagem: `Olá, meus principais sintomas são: ${formData.sintomas}, pode me ajudar?`
           }
         })
       }
@@ -276,6 +277,25 @@ const HealthRiskForm: React.FC = () => {
                       inputMode: 'numeric',
                       pattern: '[0-9]{2,3}/[0-9]{2,3}'
                     }}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={12} sx={{width: '100'}}>
+              <Controller
+                name="sintomas"
+                control={control}
+                rules={{
+                  required: 'Os Sintomas são obrigatórios'
+                }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Seus principais sintomas, Exemplo: Febre, dor de barriga"
+                    fullWidth
+                    error={!!errors.sintomas}
+                    helperText={errors.sintomas?.message}
                   />
                 )}
               />

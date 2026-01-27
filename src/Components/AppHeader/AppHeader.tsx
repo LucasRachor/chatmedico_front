@@ -55,7 +55,6 @@ const AppHeader: React.FC = () => {
     logout();
   };
 
-  // =====>> Coloque o array de dependências [userId, token] aqui:
   useEffect(() => {
     if (userId && token) {
       fetchPacienteData(userId);

@@ -17,7 +17,7 @@ import {
   Modal,
   Fade,
   Backdrop,
-  Chip
+  Chip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
@@ -43,11 +43,15 @@ interface FormData {
 }
 
 const HealthRiskForm: React.FC = () => {
-  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
     defaultValues: {
-      temperatura: '',
-      pressaoArterial: ''
-    }
+      temperatura: "",
+      pressaoArterial: "",
+    },
   });
   const navigate = useNavigate();
   const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
@@ -63,25 +67,25 @@ const HealthRiskForm: React.FC = () => {
   useEffect(() => {
     const fetchPerguntas = async () => {
       if (!token) {
-        navigate('/');
+        navigate("/");
         return;
       }
 
       try {
         const response = await fetch(`${API_URL}/questionario`, {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (!response.ok) {
-          throw new Error('Erro ao carregar perguntas');
+          throw new Error("Erro ao carregar perguntas");
         }
 
         const data = await response.json();
         setPerguntas(data);
       } catch (error) {
-        setError('Erro ao carregar o formulário. Por favor, tente novamente.');
+        setError("Erro ao carregar o formulário. Por favor, tente novamente.");
       } finally {
         setLoading(false);
       }
@@ -89,7 +93,6 @@ const HealthRiskForm: React.FC = () => {
 
     fetchPerguntas();
   }, [token, navigate]);
-
 
   const riskRatingMap: { [key: string]: (media: number) => boolean } = {
     AZUL: (media) => media < 25,
@@ -102,38 +105,40 @@ const HealthRiskForm: React.FC = () => {
     for (const [rating, validate] of Object.entries(riskRatingMap)) {
       if (validate(media)) return rating;
     }
-    return 'DESCONHECIDO';
+    return "DESCONHECIDO";
   };
 
   const getClassificationColor = (classification: string) => {
     switch (classification.toLowerCase()) {
-      case 'vermelho':
-        return 'error';
-      case 'amarelo':
-        return 'warning';
-      case 'verde':
-        return 'success';
-      case 'azul':
-        return 'primary';
+      case "vermelho":
+        return "error";
+      case "amarelo":
+        return "warning";
+      case "verde":
+        return "success";
+      case "azul":
+        return "primary";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const onSubmit = async (formData: FormData) => {
     if (!token) return;
 
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     const userId = payload.sub;
 
     try {
-      const respostasPerguntas = Object.entries(formData)
-        .filter(([key]) => key.startsWith('pergunta_'));
+      const respostasPerguntas = Object.entries(formData).filter(([key]) =>
+        key.startsWith("pergunta_"),
+      );
       let numerador = 0;
       let denominador = 0;
 
       respostasPerguntas.forEach(([_key, valor]) => {
-        const [perguntaIndexStr, _alternativaIndexStr, pesoEscolhidoStr] = valor.split('_');
+        const [perguntaIndexStr, _alternativaIndexStr, pesoEscolhidoStr] =
+          valor.split("_");
         const perguntaIndex = parseInt(perguntaIndexStr, 10);
         const pesoEscolhido = parseInt(pesoEscolhidoStr, 10);
 
@@ -144,46 +149,54 @@ const HealthRiskForm: React.FC = () => {
         denominador += pesoDaPergunta;
       });
 
-
-      const media = denominador ? (numerador / denominador) : 0;
+      const media = denominador ? numerador / denominador : 0;
 
       const riskRating = retrieveRiskRating(media);
-      const tipoAtendimento = ['AZUL', 'VERDE'].includes(riskRating) ? 'IA' : 'Profissional';
+      const tipoAtendimento = ["AZUL", "VERDE"].includes(riskRating)
+        ? "IA"
+        : "Profissional";
       const data = {
         tipoAtendimento,
         pacienteId: userId,
         temperatura: formData.temperatura,
         pressaoArterial: formData.pressaoArterial,
         respostas: Object.entries(formData)
-          .filter(([key]) => key.startsWith('pergunta_'))
+          .filter(([key]) => key.startsWith("pergunta_"))
           .map(([_, valor]) => {
-            const partes = valor.split('_');
+            const partes = valor.split("_");
             const [indexStr, altIndexStr, _pesoStr] = partes;
             const perguntaIndex = parseInt(indexStr, 10);
             const altIndex = parseInt(altIndexStr, 10);
             if (isNaN(perguntaIndex) || isNaN(altIndex)) {
-              throw new Error(`Índices inválidos: pergunta='${indexStr}', alternativa='${altIndexStr}'`);
+              throw new Error(
+                `Índices inválidos: pergunta='${indexStr}', alternativa='${altIndexStr}'`,
+              );
             }
             const perguntaSelecionada = perguntas[perguntaIndex];
-            const alternativaSelecionada = perguntaSelecionada.alternativas[altIndex];
+            const alternativaSelecionada =
+              perguntaSelecionada.alternativas[altIndex];
             return {
               pergunta: perguntaSelecionada.pergunta,
-              resposta: alternativaSelecionada.alternativa
+              resposta: alternativaSelecionada.alternativa,
             };
           }),
         classificacaoRisco: riskRating,
       };
 
       await fetch(`${API_URL}/atendimentos`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });
 
-      setDestination(tipoAtendimento === 'IA' ? 'Atendimento com IA' : 'Atendimento Profissional');
+      setDestination(
+        tipoAtendimento === "IA"
+          ? "Atendimento com IA"
+          : "Atendimento Profissional",
+      );
       setRatingDisplay(riskRating);
       setOpenModal(true);
 
@@ -193,24 +206,43 @@ const HealthRiskForm: React.FC = () => {
         setCountdown(count);
         if (count === 0) {
           clearInterval(timer);
-          if (tipoAtendimento === 'IA') {
-            navigate('/ai-chat', { state: { riskRating, media, temperatura: parseFloat(formData.temperatura), pressaoArterial: formData.pressaoArterial, mensagem: `Olá, meus principais sintomas são: ${formData.sintomas}, pode me ajudar?` } });
+          if (tipoAtendimento === "IA") {
+            navigate("/ai-chat", {
+              state: {
+                riskRating,
+                media,
+                temperatura: parseFloat(formData.temperatura),
+                pressaoArterial: formData.pressaoArterial,
+                mensagem: `Olá, meus principais sintomas são: ${formData.sintomas}, pode me ajudar?`,
+              },
+            });
           } else {
-            navigate('/medicalChat', { state: { riskRating, media, temperatura: parseFloat(formData.temperatura), pressaoArterial: formData.pressaoArterial } });
+            navigate("/medicalChat", {
+              state: {
+                riskRating,
+                media,
+                temperatura: parseFloat(formData.temperatura),
+                pressaoArterial: formData.pressaoArterial,
+              },
+            });
           }
         }
       }, 1000);
-
     } catch (error) {
-      console.log(error)
-      alert('Erro ao enviar formulário. Tente novamente.');
+      console.log(error);
+      alert("Erro ao enviar formulário. Tente novamente.");
     }
   };
 
   if (loading) {
     return (
       <Container maxWidth="md">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="100vh"
+        >
           <CircularProgress />
         </Box>
       </Container>
@@ -220,7 +252,12 @@ const HealthRiskForm: React.FC = () => {
   if (error) {
     return (
       <Container maxWidth="md">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="100vh"
+        >
           <Alert severity="error">{error}</Alert>
         </Box>
       </Container>
@@ -228,7 +265,6 @@ const HealthRiskForm: React.FC = () => {
   }
 
   return (
-
     <Container maxWidth="md">
       <AppHeader />
       <Box
@@ -251,11 +287,11 @@ const HealthRiskForm: React.FC = () => {
                 name="temperatura"
                 control={control}
                 rules={{
-                  required: 'Temperatura é obrigatória',
+                  required: "Temperatura é obrigatória",
                   pattern: {
                     value: /^[0-9]{1,2}([,.][0-9]{1})?$/,
-                    message: 'Digite uma temperatura válida (ex: 36.5)'
-                  }
+                    message: "Digite uma temperatura válida (ex: 36.5)",
+                  },
                 }}
                 render={({ field }) => (
                   <TextField
@@ -265,25 +301,24 @@ const HealthRiskForm: React.FC = () => {
                     error={!!errors.temperatura}
                     helperText={errors.temperatura?.message}
                     inputProps={{
-                      inputMode: 'decimal',
-                      pattern: '[0-9]{1,2}([,.][0-9]{1})?'
+                      inputMode: "decimal",
+                      pattern: "[0-9]{1,2}([,.][0-9]{1})?",
                     }}
                   />
                 )}
               />
             </Grid>
 
-
             <Grid item xs={12} md={6}>
               <Controller
                 name="pressaoArterial"
                 control={control}
                 rules={{
-                  required: 'Pressão arterial é obrigatória',
+                  required: "Pressão arterial é obrigatória",
                   pattern: {
                     value: /^[0-9]{2,3}\/[0-9]{2,3}$/,
-                    message: 'Digite a pressão no formato correto (ex: 120/80)'
-                  }
+                    message: "Digite a pressão no formato correto (ex: 120/80)",
+                  },
                 }}
                 render={({ field }) => (
                   <TextField
@@ -293,20 +328,20 @@ const HealthRiskForm: React.FC = () => {
                     error={!!errors.pressaoArterial}
                     helperText={errors.pressaoArterial?.message}
                     inputProps={{
-                      inputMode: 'numeric',
-                      pattern: '[0-9]{2,3}/[0-9]{2,3}'
+                      inputMode: "numeric",
+                      pattern: "[0-9]{2,3}/[0-9]{2,3}",
                     }}
                   />
                 )}
               />
             </Grid>
 
-            <Grid item xs={12} md={12} sx={{ width: '100' }}>
+            <Grid item xs={12} md={12} sx={{ width: "100" }}>
               <Controller
                 name="sintomas"
                 control={control}
                 rules={{
-                  required: 'Os Sintomas são obrigatórios'
+                  required: "Os Sintomas são obrigatórios",
                 }}
                 render={({ field }) => (
                   <TextField
@@ -327,7 +362,11 @@ const HealthRiskForm: React.FC = () => {
                     {pergunta.pergunta}
                   </FormLabel>
                   {pergunta.observacao && (
-                    <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      sx={{ mb: 2 }}
+                    >
                       {pergunta.observacao}
                     </Typography>
                   )}
@@ -335,7 +374,7 @@ const HealthRiskForm: React.FC = () => {
                     name={`pergunta_${index}`}
                     control={control}
                     defaultValue=""
-                    rules={{ required: 'Por favor, selecione uma opção' }}
+                    rules={{ required: "Por favor, selecione uma opção" }}
                     render={({ field: { value, onChange, ...field } }) => (
                       <RadioGroup
                         value={value}
@@ -379,9 +418,24 @@ const HealthRiskForm: React.FC = () => {
         BackdropProps={{ timeout: 500 }}
       >
         <Fade in={openModal}>
-          <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', bgcolor: 'background.paper', p: 4, borderRadius: 2, textAlign: 'center', boxShadow: 24 }}>
-            <Typography variant="h6" gutterBottom>Redirecionando para {destination}</Typography>
-            <Typography variant="subtitle1" gutterBottom>Sua classificação:
+          <Box
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%,-50%)",
+              bgcolor: "background.paper",
+              p: 4,
+              borderRadius: 2,
+              textAlign: "center",
+              boxShadow: 24,
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Redirecionando para {destination}
+            </Typography>
+            <Typography variant="subtitle1" gutterBottom>
+              Sua classificação:
               <br />
               <Chip
                 label={ratingDisplay}
@@ -393,7 +447,6 @@ const HealthRiskForm: React.FC = () => {
           </Box>
         </Fade>
       </Modal>
-
     </Container>
   );
 };

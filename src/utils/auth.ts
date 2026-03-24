@@ -1,5 +1,5 @@
 import { decodeJwtToken } from './jwt';
-import { API_URL } from "../config/api";
+import api from "../config/api";
 
 interface AuthResponse {
   message: string;
@@ -19,21 +19,8 @@ export const verifyToken = async (): Promise<boolean> => {
   }
 
   try {
-    const response = await fetch(`${API_URL}/auth/verify`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      logout();
-      return false;
-    }
-
-    const data: AuthResponse = await response.json();
+    const { data } = await api.get<AuthResponse>('/auth/verify');
     localStorage.setItem('role', data.user.role);
-
     return true;
   } catch (error) {
     logout();

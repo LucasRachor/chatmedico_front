@@ -1,18 +1,18 @@
 const loginStyles = {
   container: {
     display: "flex",
-    height: "100vh",
-    width: "100vw",
+    height: "100dvh",
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
     backgroundSize: "cover",
     backgroundPosition: "center",
-    padding: { xs: 2, sm: 4 },
+    padding: { xs: 1.5, sm: 4 },
   },
   paper: {
-    padding: { xs: 2, sm: 4 },
-    width: { xs: "90%", sm: "400px" },
-    maxHeight: "90vh",
+    padding: { xs: 2.5, sm: 4 },
+    width: { xs: "95%", sm: "400px" },
+    maxHeight: "90dvh",
     borderRadius: 2,
     overflow: "auto",
     display: "flex",
@@ -43,15 +43,13 @@ const loginStyles = {
   logoBox: {
     display: "flex",
     justifyContent: "center",
-    mb: 3,
-    mt: 3,
+    mb: { xs: 2, sm: 3 },
+    mt: { xs: 2, sm: 3 },
   },
   logo: {
-    height: "150px",
-    "@media (max-width: 600px)": {
-      height: "100px",
-    },
-  },
+    height: "100px",
+    maxWidth: "100%",
+  } as React.CSSProperties,
   inputAdornment: {
     startAdornment: {
       position: "start",
@@ -66,7 +64,8 @@ const loginStyles = {
     fontSize: 15,
   },
   button: {
-    mt: 4,
+    mt: 3,
+    py: 1.5,
   },
 };
 

@@ -21,7 +21,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { getAuthData } from "../../utils/auth";
-import { API_URL } from "../../config/api";
+import api from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
 
 interface Alternativa {
@@ -72,17 +72,7 @@ const HealthRiskForm: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/questionario`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Erro ao carregar perguntas");
-        }
-
-        const data = await response.json();
+        const { data } = await api.get('/questionario');
         setPerguntas(data);
       } catch (error) {
         setError("Erro ao carregar o formulário. Por favor, tente novamente.");
@@ -183,14 +173,7 @@ const HealthRiskForm: React.FC = () => {
         classificacaoRisco: riskRating,
       };
 
-      await fetch(`${API_URL}/atendimentos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
+      await api.post('/atendimentos', data);
 
       setDestination(
         tipoAtendimento === "IA"
@@ -265,12 +248,12 @@ const HealthRiskForm: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="md" sx={{ px: { xs: 1.5, sm: 3 } }}>
       <AppHeader />
       <Box
         sx={{
-          p: 4,
-          mt: 9,
+          p: { xs: 2, sm: 4 },
+          mt: { xs: 8, sm: 9 },
         }}
       >
         <Typography variant="h5" align="left" gutterBottom sx={{ mb: 3 }}>
@@ -425,10 +408,12 @@ const HealthRiskForm: React.FC = () => {
               left: "50%",
               transform: "translate(-50%,-50%)",
               bgcolor: "background.paper",
-              p: 4,
+              p: { xs: 3, sm: 4 },
               borderRadius: 2,
               textAlign: "center",
               boxShadow: 24,
+              width: { xs: "85%", sm: "auto" },
+              maxWidth: 400,
             }}
           >
             <Typography variant="h6" gutterBottom>

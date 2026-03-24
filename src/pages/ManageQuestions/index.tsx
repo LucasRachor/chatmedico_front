@@ -8,15 +8,22 @@ import {
   Typography,
   IconButton,
   Grid,
+  CircularProgress,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
+  Alert,
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import { Add, Delete, Edit } from "@mui/icons-material";
-import axios from "axios";
-import { API_URL } from "../../config/api";
+import api from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
 import { useNavigate } from "react-router-dom";
 
@@ -35,23 +42,25 @@ type QuestionForm = {
 };
 
 const RiskAssessment: React.FC = () => {
-  const { control, handleSubmit, reset } = useForm<QuestionForm>({
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<QuestionForm>({
     defaultValues: { pergunta: "", peso: 0, observacao: "", alternativas: [] }
   });
   const { fields, append, remove, replace } = useFieldArray({ control, name: "alternativas" });
   const [questions, setQuestions] = useState<QuestionForm[]>([]);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({ open: false, message: "", severity: "success" });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const navigate = useNavigate();
 
   const fetchQuestions = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get<QuestionForm[]>(`${API_URL}/questionario`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get<QuestionForm[]>('/questionario');
       setQuestions(response.data.map(q => ({ ...q, alternativas: q.alternativas ?? [] })));
     } catch (err) {
-      console.error("Erro ao buscar perguntas:", err);
+      setSnackbar({ open: true, message: "Erro ao buscar perguntas", severity: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,29 +70,18 @@ const RiskAssessment: React.FC = () => {
 
   const onSubmit = async (data: QuestionForm) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Token não encontrado");
-
       if (editingQuestionId) {
-        await axios.patch(
-          `${API_URL}/questionario/${editingQuestionId}`,
-          data,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        fetchQuestions();
+        await api.patch(`/questionario/${editingQuestionId}`, data);
+        setSnackbar({ open: true, message: "Pergunta atualizada com sucesso!", severity: "success" });
       } else {
-        await axios.post<QuestionForm>(
-          `${API_URL}/questionario`,
-          data,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        fetchQuestions();
+        await api.post<QuestionForm>('/questionario', data);
+        setSnackbar({ open: true, message: "Pergunta adicionada com sucesso!", severity: "success" });
       }
-
+      fetchQuestions();
       reset({ pergunta: "", peso: 0, observacao: "", alternativas: [] });
       setEditingQuestionId(null);
     } catch (error) {
-      console.error("Erro ao salvar questionário:", error);
+      setSnackbar({ open: true, message: "Erro ao salvar pergunta", severity: "error" });
     }
   };
 
@@ -93,44 +91,83 @@ const RiskAssessment: React.FC = () => {
     setEditingQuestionId(question.id!);
   };
 
-  const handleDelete = async (id?: string) => {
+  const handleCancelEdit = () => {
+    reset({ pergunta: "", peso: 0, observacao: "", alternativas: [] });
+    setEditingQuestionId(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    const id = deleteDialog.id;
+    setDeleteDialog({ open: false, id: null });
     if (!id) return;
-    if (confirm("Deseja realmente excluir esta pergunta?")) {
-      try {
-        const token = localStorage.getItem("token");
-        await axios.delete(`${API_URL}/questionario/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setQuestions(prev => prev.filter(q => q.id !== id));
-      } catch (error) {
-        console.error("Erro ao excluir pergunta:", error);
-      }
+    try {
+      await api.delete(`/questionario/${id}`);
+      setQuestions(prev => prev.filter(q => q.id !== id));
+      setSnackbar({ open: true, message: "Pergunta excluída com sucesso!", severity: "success" });
+    } catch (error) {
+      setSnackbar({ open: true, message: "Erro ao excluir pergunta", severity: "error" });
     }
   };
 
+  if (loading) {
+    return (
+      <Container maxWidth="md">
+        <AppHeader />
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="md" sx={{ px: { xs: 1, sm: 3 } }}>
       <AppHeader />
-      <Box sx={{ bgcolor: "#F7FAFC", p: { xs: 2, sm: 4 }, borderRadius: 2, boxShadow: 2, mt: 15, mb: 5 }}>
+      <Box sx={{ bgcolor: "#F7FAFC", p: { xs: 1.5, sm: 4 }, borderRadius: 2, boxShadow: 2, mt: { xs: 8, sm: 15 }, mb: 5 }}>
         <Button variant="contained" onClick={() => navigate("/patient")} sx={{ mt: 2, mb: 2 }}>
           Voltar
         </Button>
 
         <Typography variant="h5" align="center" gutterBottom sx={{ mb: 4 }}>
-          Criar e Avaliar Formulário de Risco
+          {editingQuestionId ? "Editar Pergunta" : "Criar e Avaliar Formulário de Risco"}
         </Typography>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Controller name="pergunta" control={control} render={({ field }) => (
-                <TextField {...field} fullWidth label="Pergunta" variant="outlined" />
-              )} />
+              <Controller
+                name="pergunta"
+                control={control}
+                rules={{ required: "Pergunta é obrigatória" }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Pergunta"
+                    variant="outlined"
+                    error={!!errors.pergunta}
+                    helperText={errors.pergunta?.message}
+                  />
+                )}
+              />
             </Grid>
             <Grid item xs={6}>
-              <Controller name="peso" control={control} render={({ field }) => (
-                <TextField {...field} fullWidth label="Peso da Pergunta" type="number" variant="outlined" />
-              )} />
+              <Controller
+                name="peso"
+                control={control}
+                rules={{ required: "Peso é obrigatório", min: { value: 0, message: "Peso deve ser positivo" } }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Peso da Pergunta"
+                    type="number"
+                    variant="outlined"
+                    error={!!errors.peso}
+                    helperText={errors.peso?.message}
+                  />
+                )}
+              />
             </Grid>
             <Grid item xs={12}>
               <Controller name="observacao" control={control} render={({ field }) => (
@@ -147,8 +184,16 @@ const RiskAssessment: React.FC = () => {
                     <Controller
                       name={`alternativas.${index}.alternativa`}
                       control={control}
+                      rules={{ required: "Texto da alternativa é obrigatório" }}
                       render={({ field }) => (
-                        <TextField {...field} fullWidth label="Texto da Alternativa" variant="outlined" />
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Texto da Alternativa"
+                          variant="outlined"
+                          error={!!errors.alternativas?.[index]?.alternativa}
+                          helperText={errors.alternativas?.[index]?.alternativa?.message}
+                        />
                       )}
                     />
                   </Grid>
@@ -156,8 +201,17 @@ const RiskAssessment: React.FC = () => {
                     <Controller
                       name={`alternativas.${index}.peso`}
                       control={control}
+                      rules={{ required: "Peso é obrigatório" }}
                       render={({ field }) => (
-                        <TextField {...field} fullWidth label="Peso" type="number" variant="outlined" />
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Peso"
+                          type="number"
+                          variant="outlined"
+                          error={!!errors.alternativas?.[index]?.peso}
+                          helperText={errors.alternativas?.[index]?.peso?.message}
+                        />
                       )}
                     />
                   </Grid>
@@ -173,51 +227,92 @@ const RiskAssessment: React.FC = () => {
               </Button>
             </Grid>
 
-            <Grid item xs={12} sx={{ mt: 2 }}>
+            <Grid item xs={12} sx={{ mt: 2, display: "flex", gap: 2 }}>
               <Button type="submit" variant="contained" color="primary" fullWidth>
                 {editingQuestionId ? "Atualizar Pergunta" : "Adicionar Pergunta"}
               </Button>
+              {editingQuestionId && (
+                <Button variant="outlined" color="inherit" fullWidth onClick={handleCancelEdit}>
+                  Cancelar
+                </Button>
+              )}
             </Grid>
           </Grid>
         </form>
 
         {/* Tabela de perguntas */}
-        <Box sx={{ mt: 4, mb: 4 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Pergunta</TableCell>
-                <TableCell>Peso</TableCell>
-                <TableCell>Alternativas</TableCell>
-                <TableCell>Observação</TableCell>
-                <TableCell>Ações</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {questions.map((question) => (
-                <TableRow key={question.id}>
-                  <TableCell>{question.pergunta}</TableCell>
-                  <TableCell>{question.peso}</TableCell>
-                  <TableCell>
-                    {(question.alternativas ?? []).map((alt, i) => (
-                      <Typography key={i} variant="body2">{`${alt.alternativa} (Peso: ${alt.peso})`}</Typography>
-                    ))}
-                  </TableCell>
-                  <TableCell>{question.observacao}</TableCell>
-                  <TableCell>
-                    <IconButton color="primary" onClick={() => handleEdit(question)}>
-                      <Edit />
-                    </IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(question.id)}>
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
+        <Box sx={{ mt: 4, mb: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          {questions.length === 0 ? (
+            <Typography variant="body1" color="text.secondary" align="center" sx={{ py: 4 }}>
+              Nenhuma pergunta cadastrada ainda.
+            </Typography>
+          ) : (
+            <Table sx={{ minWidth: 500 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Pergunta</TableCell>
+                  <TableCell>Peso</TableCell>
+                  <TableCell>Alternativas</TableCell>
+                  <TableCell>Observação</TableCell>
+                  <TableCell>Ações</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {questions.map((question) => (
+                  <TableRow key={question.id}>
+                    <TableCell>{question.pergunta}</TableCell>
+                    <TableCell>{question.peso}</TableCell>
+                    <TableCell>
+                      {(question.alternativas ?? []).map((alt, i) => (
+                        <Typography key={i} variant="body2">{`${alt.alternativa} (Peso: ${alt.peso})`}</Typography>
+                      ))}
+                    </TableCell>
+                    <TableCell>{question.observacao}</TableCell>
+                    <TableCell>
+                      <IconButton color="primary" onClick={() => handleEdit(question)}>
+                        <Edit />
+                      </IconButton>
+                      <IconButton color="error" onClick={() => setDeleteDialog({ open: true, id: question.id || null })}>
+                        <Delete />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </Box>
       </Box>
+
+      {/* Dialog de confirmação de exclusão */}
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })}>
+        <DialogTitle>Confirmar exclusão</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Deseja realmente excluir esta pergunta? Esta ação não pode ser desfeita.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })}>Cancelar</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">Excluir</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar de feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

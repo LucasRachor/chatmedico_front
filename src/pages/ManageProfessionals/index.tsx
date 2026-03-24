@@ -24,12 +24,11 @@ import {
   InputLabel,
   Alert,
   Snackbar,
-  SelectChangeEvent
+  SelectChangeEvent,
+  CircularProgress
 } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp, Add, Edit, Delete } from '@mui/icons-material';
-import axios from 'axios';
-import { getAuthData } from '../../utils/auth';
-import { API_URL } from "../../config/api";
+import api from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
 
 interface Professional {
@@ -72,7 +71,6 @@ const ManageProfessionals: React.FC = () => {
   const [openModalPaciente, setOpenModalPaciente] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
   const [editingPaciente, setEditingPaciente] = useState<Paciente | null>(null);
-  const { token } = getAuthData();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -103,19 +101,15 @@ const ManageProfessionals: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [activeTab, setActiveTab] = useState<'profissionais' | 'pacientes'>('profissionais');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProfessionals();
-    fetchPacientes();
+    Promise.all([fetchProfessionals(), fetchPacientes()]).finally(() => setLoading(false));
   }, []);
 
   const fetchProfessionals = async () => {
     try {
-      const response = await axios.get(`${API_URL}/equipe-medica/medicos`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/equipe-medica/medicos');
       setProfessionals(response.data);
     } catch (err) {
       setError('Erro ao carregar profissionais');
@@ -124,11 +118,7 @@ const ManageProfessionals: React.FC = () => {
 
   const fetchPacientes = async () => {
     try {
-      const response = await axios.get(`${API_URL}/pacientes`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/pacientes');
       setPacientes(response.data);
     } catch (err) {
       setError('Erro ao carregar pacientes');
@@ -214,14 +204,10 @@ const ManageProfessionals: React.FC = () => {
       );
 
       const url = formData.tipo === 'medico'
-        ? `${API_URL}/equipe-medica/medico`
-        : `${API_URL}/equipe-medica/enfermeiro`;
+        ? '/equipe-medica/medico'
+        : '/equipe-medica/enfermeiro';
 
-      await axios.post(url, processedData, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await api.post(url, processedData);
 
       setSuccess('Profissional cadastrado com sucesso!');
       setFormData({
@@ -242,11 +228,7 @@ const ManageProfessionals: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`${API_URL}/equipe-medica/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await api.delete(`/equipe-medica/${id}`);
       setSuccess('Profissional removido com sucesso!');
       fetchProfessionals();
     } catch (err) {
@@ -278,11 +260,7 @@ const ManageProfessionals: React.FC = () => {
         Object.entries(data).map(([key, value]) => [key, value === '' ? null : value])
       );
 
-      await axios.patch(`${API_URL}/equipe-medica/${editingProfessional.id}`, processedData, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await api.patch(`/equipe-medica/${editingProfessional.id}`, processedData);
       setSuccess('Profissional atualizado com sucesso!');
       setOpenModal(false);
       setEditingProfessional(null);
@@ -329,11 +307,7 @@ const ManageProfessionals: React.FC = () => {
       if (telefone) processedData.telefone = telefone;
       if (grauDeInstrucao) processedData.grauDeInstrucao = grauDeInstrucao;
 
-      await axios.patch(`${API_URL}/pacientes/${editingPaciente.id}`, processedData, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await api.patch(`/pacientes/${editingPaciente.id}`, processedData);
       setSuccess('Paciente atualizado com sucesso!');
       setOpenModalPaciente(false);
       setEditingPaciente(null);
@@ -345,11 +319,7 @@ const ManageProfessionals: React.FC = () => {
 
   const handleDeletePaciente = async (id: string) => {
     try {
-      await axios.delete(`${API_URL}/pacientes/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await api.delete(`/pacientes/${id}`);
       setSuccess('Paciente removido com sucesso!');
       fetchPacientes();
     } catch (err) {
@@ -357,14 +327,25 @@ const ManageProfessionals: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <AppHeader />
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4, px: { xs: 1, sm: 3 } }}>
       <AppHeader />
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, mt: 15 }}>
-        <Typography variant="h4" component="h1">
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 3, mt: { xs: 8, sm: 15 }, gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Gerenciamento
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant={activeTab === 'profissionais' ? 'contained' : 'outlined'}
             onClick={() => setActiveTab('profissionais')}
@@ -403,7 +384,7 @@ const ManageProfessionals: React.FC = () => {
               Novo Profissional
             </Button>
           </Box>
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -484,7 +465,7 @@ const ManageProfessionals: React.FC = () => {
         </>
       ) : (
         <>
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <Table>
               <TableHead>
                 <TableRow>

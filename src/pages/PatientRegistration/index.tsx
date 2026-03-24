@@ -22,7 +22,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import ptBR from "date-fns/locale/pt-BR"
 import { format } from 'date-fns';
-import { API_URL } from "../../config/api";
+import api from "../../config/api";
+import axios from "axios";
 
 interface EnderecoForm {
     rua: string;
@@ -52,6 +53,7 @@ const PatientRegistration: React.FC = () => {
     const [openSnackbar, setOpenSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+    const [loadingCEP, setLoadingCEP] = useState(false);
 
     const formatCPF = (value: string) => {
         const numbers = value.replace(/\D/g, '');
@@ -83,9 +85,9 @@ const PatientRegistration: React.FC = () => {
 
     const handleCEPBlur = async (cep: string) => {
         if (cep.length === 8) {
+            setLoadingCEP(true);
             try {
-                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-                const data = await response.json();
+                const { data } = await axios.get(`https://viacep.com.br/ws/${cep}/json/`);
                 if (!data.erro) {
                     setValue('endereco.rua', data.logradouro);
                     setValue('endereco.bairro', data.bairro);
@@ -94,8 +96,19 @@ const PatientRegistration: React.FC = () => {
                 }
             } catch (error) {
                 console.error('Erro ao buscar CEP:', error);
+            } finally {
+                setLoadingCEP(false);
             }
         }
+    };
+
+    const cepFieldSx = {
+        transition: 'filter 0.3s ease, opacity 0.3s ease',
+        ...(loadingCEP && {
+            filter: 'blur(3px)',
+            opacity: 0.5,
+            pointerEvents: 'none' as const,
+        }),
     };
 
     const onSubmit = async (data: PatientForm) => {
@@ -109,33 +122,19 @@ const PatientRegistration: React.FC = () => {
                 }
             };
 
-            const response = await fetch(`${API_URL}/pacientes`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formattedData),
-            });
-
-            if (response.ok) {
-                setSnackbarMessage('Paciente cadastrado com sucesso!');
-                setSnackbarSeverity('success');
-                setOpenSnackbar(true);
-                setTimeout(() => navigate('/'), 2000);
+            await api.post('/pacientes', formattedData);
+            setSnackbarMessage('Paciente cadastrado com sucesso!');
+            setSnackbarSeverity('success');
+            setOpenSnackbar(true);
+            setTimeout(() => navigate('/'), 2000);
+        } catch (error: any) {
+            const errorData = error.response?.data;
+            if (errorData?.error) {
+                const errorMessages = Object.values(errorData.error).join('\n');
+                setSnackbarMessage(errorMessages);
             } else {
-                const errorData = await response.json();
-                if (errorData.error) {
-                    // Cria uma mensagem com todos os erros de campos duplicados
-                    const errorMessages = Object.values(errorData.error).join('\n');
-                    setSnackbarMessage(errorMessages);
-                    setSnackbarSeverity('error');
-                    setOpenSnackbar(true);
-                } else {
-                    throw new Error('Erro ao cadastrar paciente');
-                }
+                setSnackbarMessage('Erro ao cadastrar paciente. Tente novamente.');
             }
-        } catch (error) {
-            setSnackbarMessage('Erro ao cadastrar paciente. Tente novamente.');
             setSnackbarSeverity('error');
             setOpenSnackbar(true);
         }
@@ -151,14 +150,15 @@ const PatientRegistration: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                py: 4
+                py: { xs: 2, sm: 4 },
+                px: { xs: 1, sm: 0 }
             }}
         >
             <Container maxWidth="md">
                 <Box sx={{
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     borderRadius: 2,
-                    p: 4,
+                    p: { xs: 2, sm: 4 },
                     boxShadow: 3
                 }}>
                     <Typography variant="h4" gutterBottom align="center">
@@ -432,7 +432,7 @@ const PatientRegistration: React.FC = () => {
                                     />
                                 </Grid>
 
-                                <Grid item xs={12} md={6}>
+                                <Grid item xs={12} md={6} sx={cepFieldSx}>
                                     <Controller
                                         name="endereco.rua"
                                         control={control}
@@ -466,7 +466,7 @@ const PatientRegistration: React.FC = () => {
                                     />
                                 </Grid>
 
-                                <Grid item xs={12} md={4}>
+                                <Grid item xs={12} md={4} sx={cepFieldSx}>
                                     <Controller
                                         name="endereco.bairro"
                                         control={control}
@@ -483,7 +483,7 @@ const PatientRegistration: React.FC = () => {
                                     />
                                 </Grid>
 
-                                <Grid item xs={12} md={4}>
+                                <Grid item xs={12} md={4} sx={cepFieldSx}>
                                     <Controller
                                         name="endereco.cidade"
                                         control={control}
@@ -500,7 +500,7 @@ const PatientRegistration: React.FC = () => {
                                     />
                                 </Grid>
 
-                                <Grid item xs={12} md={4}>
+                                <Grid item xs={12} md={4} sx={cepFieldSx}>
                                     <Controller
                                         name="endereco.estado"
                                         control={control}

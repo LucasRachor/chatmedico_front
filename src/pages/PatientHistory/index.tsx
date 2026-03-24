@@ -15,12 +15,11 @@ import {
     Chip,
     Alert,
     Snackbar,
-    Button
+    Button,
+    CircularProgress
 } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
-import axios from 'axios';
-import { getAuthData } from '../../utils/auth';
-import { API_URL } from '../../config/api';
+import api from '../../config/api';
 import AppHeader from '../../Components/AppHeader/AppHeader';
 import { useNavigate } from "react-router-dom";
 
@@ -43,19 +42,17 @@ const PatientHistory: React.FC = () => {
     const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
     const [openRows, setOpenRows] = useState<{ [key: number]: boolean }>({});
     const [error, setError] = useState('');
-    const { token } = getAuthData();
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     const fetchAtendimentos = async () => {
         try {
-            const response = await axios.get(`${API_URL}/atendimentos`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await api.get('/atendimentos');
             setAtendimentos(response.data);
         } catch (err) {
             setError('Erro ao carregar histórico de atendimentos');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -93,11 +90,22 @@ const PatientHistory: React.FC = () => {
         fetchAtendimentos();
     }, []);
 
+    if (loading) {
+        return (
+            <Container maxWidth="lg" sx={{ mt: { xs: 8, sm: 12 }, mb: 4 }}>
+                <AppHeader />
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+                    <CircularProgress />
+                </Box>
+            </Container>
+        );
+    }
+
     return (
-        <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
+        <Container maxWidth="lg" sx={{ mt: { xs: 8, sm: 12 }, mb: 4, px: { xs: 1, sm: 3 } }}>
             <AppHeader />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="h4" component="h1">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="h4" component="h1" sx={{ fontSize: { xs: '1.3rem', sm: '2.125rem' } }}>
                     Meus Atendimentos:
                 </Typography>
             </Box>
@@ -111,7 +119,7 @@ const PatientHistory: React.FC = () => {
                 Voltar
             </Button>
 
-            <TableContainer component={Paper} style={{ maxHeight: '500px', overflowY: 'initial', alignContent: 'center' }}>
+            <TableContainer component={Paper} sx={{ maxHeight: '500px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <Table stickyHeader>
                     <TableHead>
                         <TableRow>

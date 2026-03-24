@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, TextField, Button, Typography, Box, Paper, InputAdornment, Link } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -7,7 +7,7 @@ import fundoLogin from "../../assets/fundo-login.jpg";
 import logo from "../../assets/logo.png";
 import loginStyles from "./Login.styles";
 import { decodeJwtToken } from "../../utils/jwt";
-import { API_URL } from "../../config/api";
+import api from "../../config/api";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -15,21 +15,24 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    if (token && role) {
+      if (role === "medico" || role === "enfermeiro") {
+        navigate("/patient", { replace: true });
+      } else if (role === "paciente") {
+        navigate("/patientHome", { replace: true });
+      } else if (role === "admin") {
+        navigate("/manage-professionals", { replace: true });
+      }
+    }
+  }, [navigate]);
+
   const handleLogin = async () => {
     setError("");
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Erro ao fazer login");
-      }
+      const { data } = await api.post('/auth/login', { username, password });
 
       const token = data.access_token;
       const decodedToken = decodeJwtToken(token);

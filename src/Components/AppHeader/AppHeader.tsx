@@ -7,14 +7,16 @@ import {
   Menu,
   MenuItem,
   Avatar,
-  Box
+  Box,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import logo from "../../assets/logo.png";
 import { getAuthData, logout } from "../../utils/auth";
-import { API_URL } from "../../config/api";
+import api from "../../config/api";
+import { useNavigate } from "react-router-dom";
 
 const AppHeader: React.FC = () => {
+  const navigate = useNavigate();
   const { token } = getAuthData();
   const [userName, setUserName] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -26,18 +28,8 @@ const AppHeader: React.FC = () => {
   const fetchPacienteData = async (userId: string) => {
     if (!token || !userId) return;
     try {
-      const response = await fetch(`${API_URL}/users/find/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error("Erro ao buscar dados do paciente");
-      }
-      const data = await response.json();
-      // Supondo que `data` seja apenas a string com o nome do usuário,
-      // ou um objeto { nome: string } — ajuste conforme seu back.
-      setUserName(typeof data === "string" ? data : data.nome);
+      const { data } = await api.get(`/users/find/${userId}`);
+      setUserName(typeof data === "string" ? data : data.nomeCompleto);
     } catch (error) {
       console.error("Erro ao buscar dados do paciente:", error);
     }
@@ -68,21 +60,44 @@ const AppHeader: React.FC = () => {
       sx={{
         top: 0,
         left: 0,
-        width: "100vw",
+        width: "100%",
         bgcolor: "#FFF",
-        zIndex: 1100, // Para ficar acima de outros elementos
+        zIndex: 1100,
       }}
     >
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+      <Toolbar
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          minHeight: { xs: 56, sm: 64 },
+          px: { xs: 1, sm: 2 },
+        }}
+      >
         <Box display="flex" alignItems="center">
-          <img src={logo} alt="Logo" style={{ height: 40, marginRight: 8 }} />
+          <img
+            onClick={() => navigate("/")}
+            src={logo}
+            alt="Logo"
+            style={{ height: 36, marginRight: 8 }}
+          />
         </Box>
         <Box display="flex" alignItems="center">
-          <Typography variant="body1" sx={{ mr: 2, color: "GrayText" }}>
+          <Typography
+            variant="body2"
+            sx={{
+              mr: 1,
+              color: "GrayText",
+              display: { xs: "none", sm: "block" },
+            }}
+          >
             {userName}
           </Typography>
-          <Avatar alt={userName || ""} src="/path-to-avatar.jpg" />
-          <IconButton onClick={handleMenuOpen}>
+          <Avatar
+            alt={userName || ""}
+            src="/path-to-avatar.jpg"
+            sx={{ width: 32, height: 32 }}
+          />
+          <IconButton onClick={handleMenuOpen} size="small">
             <MoreVertIcon />
           </IconButton>
           <Menu
@@ -90,7 +105,7 @@ const AppHeader: React.FC = () => {
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
           >
-            <MenuItem onClick={handleMenuClose}>Mudar usuário</MenuItem>
+            {/* <MenuItem onClick={handleMenuClose}>Mudar usuário</MenuItem> */}
             <MenuItem onClick={handleLogout}>Sair da sessão</MenuItem>
           </Menu>
         </Box>

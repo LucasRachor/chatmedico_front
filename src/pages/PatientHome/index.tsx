@@ -8,10 +8,15 @@ const PatientHome: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
       <AppHeader />
-      <Box sx={{ mt: 20, textAlign: "center" }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
+      <Box sx={{ mt: { xs: 10, sm: 20 }, textAlign: "center" }}>
+        <Typography
+          variant="h4"
+          fontWeight="bold"
+          gutterBottom
+          sx={{ fontSize: { xs: "1.4rem", sm: "2.125rem" } }}
+        >
           Bem-vindo ao seu Ambiente Digital de Enfermagem Monitoramento e Atendimento Inteligente, e-MAI
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
@@ -21,7 +26,7 @@ const PatientHome: React.FC = () => {
         <Paper
           elevation={3}
           sx={{
-            p: 4,
+            p: { xs: 2, sm: 4 },
             borderRadius: 2,
             display: "flex",
             flexDirection: "column",
@@ -35,7 +40,7 @@ const PatientHome: React.FC = () => {
             color="primary"
             startIcon={<ChatBubbleOutline />}
             fullWidth
-            sx={{ p: 2, fontSize: "1.1rem" }}
+            sx={{ p: { xs: 1.5, sm: 2 }, fontSize: { xs: "0.95rem", sm: "1.1rem" } }}
             onClick={() => navigate("/patientHistory")}
           >
             Histórico de Atendimentos
@@ -46,7 +51,7 @@ const PatientHome: React.FC = () => {
             color="primary"
             startIcon={<Assignment />}
             fullWidth
-            sx={{ p: 2, fontSize: "1.1rem" }}
+            sx={{ p: { xs: 1.5, sm: 2 }, fontSize: { xs: "0.95rem", sm: "1.1rem" } }}
             onClick={() => navigate("/healthRiskForm")}
           >
             Iniciar Atendimento

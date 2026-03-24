@@ -9,13 +9,14 @@ import {
   CircularProgress,
   useTheme,
   Stack,
+  IconButton,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
-import { API_URL } from "../../config/api";
+import api, { API_URL } from "../../config/api";
 import AppHeader from "../../Components/AppHeader/AppHeader";
 import { getAuthData } from "../../utils/auth";
 
@@ -52,16 +53,7 @@ const AIChat: React.FC = () => {
 
   const fetchPacienteData = async (pacienteId: string) => {
     try {
-      const response = await fetch(`${API_URL}/pacientes/${pacienteId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao buscar dados do paciente");
-      }
-      const data = await response.json();
+      const { data } = await api.get(`/pacientes/${pacienteId}`);
 
       setPacientAge(data.idade);
       setPacientGender(data.genero);
@@ -77,20 +69,12 @@ const AIChat: React.FC = () => {
     setMessageCount((prev) => prev + 1);
 
     try {
-      const response = await fetch(`${API_URL}/ia/ask`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          nome_paciente: pacientName,
-          mensagem: initialText,
-          final: false,
-          num_mensagens: messageCount,
-        }),
+      const { data } = await api.post('/ia/ask', {
+        nome_paciente: pacientName,
+        mensagem: initialText,
+        final: false,
+        num_mensagens: messageCount,
       });
-      const data = await response.json();
       const cleanResponse = data?.mensagem
         .replace(/<\|im_start\|>.*$/g, "")
         .replace(/^[^a-zA-Z0-9á-úÁ-Ú]+/g, "")
@@ -197,25 +181,15 @@ const AIChat: React.FC = () => {
     setInput("");
     setMessages((prev) => [...prev, { text: userMessage, isUser: true }]);
     setIsLoading(true);
-    const token = localStorage.getItem("token");
     setMessageCount((prev) => prev + 1);
 
     try {
-      const response = await fetch(`${API_URL}/ia/ask`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          num_mensagens: messageCount,
-          nome_paciente: pacientName,
-          final: false,
-          mensagem: userMessage,
-        }),
+      const { data } = await api.post('/ia/ask', {
+        num_mensagens: messageCount,
+        nome_paciente: pacientName,
+        final: false,
+        mensagem: userMessage,
       });
-
-      const data = await response.json();
       const newMessageIndex = messages.length + 1;
 
       let cleanResponse = data?.mensagem
@@ -310,11 +284,18 @@ const AIChat: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100dvh" }}>
       <AppHeader />
       <Container
         maxWidth="md"
-        sx={{ flex: 1, py: 1, mt: 8, height: "calc(100vh - 64px)" }}
+        disableGutters
+        sx={{
+          flex: 1,
+          py: { xs: 0, sm: 1 },
+          mt: { xs: 7, sm: 8 },
+          px: { xs: 0, sm: 2 },
+          height: { xs: "calc(100dvh - 56px)", sm: "calc(100vh - 64px)" },
+        }}
       >
         <Paper
           elevation={3}
@@ -323,14 +304,13 @@ const AIChat: React.FC = () => {
             display: "flex",
             flexDirection: "column",
             bgcolor: theme.palette.background.paper,
-            borderRadius: 1,
+            borderRadius: { xs: 0, sm: 1 },
             overflow: "hidden",
-            maxHeight: "calc(100vh - 80px)",
           }}
         >
           <Box
             sx={{
-              p: 1.5,
+              p: { xs: 1, sm: 1.5 },
               borderBottom: 1,
               borderColor: "divider",
               bgcolor: theme.palette.primary.main,
@@ -341,25 +321,38 @@ const AIChat: React.FC = () => {
               alignItems: "center",
             }}
           >
-            <Typography variant="h6">Chat com IA</Typography>
-            <Stack direction="row" spacing={1}>
+            <Typography variant="h6" sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}>
+              Chat com IA
+            </Typography>
+            <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }}>
               <Button
                 variant="contained"
                 color="secondary"
-                startIcon={<LocalHospitalIcon />}
                 onClick={handleRequestDoctor}
                 size="small"
+                sx={{
+                  minWidth: { xs: "auto", sm: 64 },
+                  px: { xs: 1, sm: 2 },
+                  fontSize: { xs: "0.7rem", sm: "0.8125rem" },
+                }}
+                startIcon={<LocalHospitalIcon sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
               >
-                Solicitar Médico
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Solicitar </Box>
+                Médico
               </Button>
               <Button
                 variant="contained"
                 color="error"
-                startIcon={<ExitToAppIcon />}
                 onClick={handleEndChat}
                 size="small"
+                sx={{
+                  minWidth: { xs: "auto", sm: 64 },
+                  px: { xs: 1, sm: 2 },
+                  fontSize: { xs: "0.7rem", sm: "0.8125rem" },
+                }}
+                startIcon={<ExitToAppIcon sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
               >
-                Encerrar Chat
+                Encerrar
               </Button>
             </Stack>
           </Box>
@@ -368,15 +361,14 @@ const AIChat: React.FC = () => {
             sx={{
               flex: 1,
               overflow: "auto",
-              p: 1.5,
+              p: { xs: 1, sm: 1.5 },
               display: "flex",
               flexDirection: "column",
-              gap: 1.5,
+              gap: 1,
               bgcolor: theme.palette.background.default,
-              height: "calc(100vh - 200px)",
-              minHeight: "400px",
+              WebkitOverflowScrolling: "touch",
               "&::-webkit-scrollbar": {
-                width: "8px",
+                width: "6px",
               },
               "&::-webkit-scrollbar-track": {
                 background: theme.palette.background.paper,
@@ -395,7 +387,7 @@ const AIChat: React.FC = () => {
                 key={index}
                 sx={{
                   alignSelf: message.isUser ? "flex-end" : "flex-start",
-                  maxWidth: "70%",
+                  maxWidth: { xs: "85%", sm: "70%" },
                   display: "flex",
                   justifyContent: message.isUser ? "flex-end" : "flex-start",
                 }}
@@ -403,7 +395,7 @@ const AIChat: React.FC = () => {
                 <Paper
                   elevation={1}
                   sx={{
-                    p: 1.5,
+                    p: { xs: 1, sm: 1.5 },
                     bgcolor: message.isUser
                       ? theme.palette.primary.main
                       : theme.palette.background.paper,
@@ -448,11 +440,12 @@ const AIChat: React.FC = () => {
 
           <Box
             sx={{
-              p: 1.5,
+              p: { xs: 1, sm: 1.5 },
               borderTop: 1,
               borderColor: "divider",
               bgcolor: theme.palette.background.paper,
               flexShrink: 0,
+              pb: { xs: "calc(8px + env(safe-area-inset-bottom, 0px))", sm: 1.5 },
             }}
           >
             <Box sx={{ display: "flex", gap: 1 }}>
@@ -469,27 +462,28 @@ const AIChat: React.FC = () => {
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     bgcolor: theme.palette.background.default,
-                    minHeight: "40px",
+                    minHeight: "44px",
                     borderRadius: 1,
                   },
                 }}
               />
-              <Button
-                variant="contained"
+              <IconButton
                 color="primary"
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
                 sx={{
-                  minWidth: "40px",
-                  width: "40px",
-                  height: "40px",
+                  bgcolor: theme.palette.primary.main,
+                  color: "white",
+                  width: 44,
+                  height: 44,
                   alignSelf: "flex-end",
-                  p: 0,
                   borderRadius: 1,
+                  "&:hover": { bgcolor: theme.palette.primary.dark },
+                  "&.Mui-disabled": { bgcolor: "action.disabledBackground" },
                 }}
               >
                 <SendIcon fontSize="small" />
-              </Button>
+              </IconButton>
             </Box>
           </Box>
         </Paper>
